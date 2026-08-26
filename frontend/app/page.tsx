@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { dashboardApi } from '@/lib/api/dashboard';
 import { expensesApi } from '@/lib/api/expenses';
 import { DashboardSummary, Expense } from '@/types';
@@ -91,7 +92,12 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-8"
+    >
 
       <Toast toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
 
@@ -139,6 +145,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-    </div>
+    </motion.div>
   );
 }

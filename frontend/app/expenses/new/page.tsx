@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { expensesApi } from '@/lib/api/expenses';
 import { ExpenseCreateInput } from '@/types';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
@@ -36,13 +37,18 @@ export default function AddExpensePage() {
   };
 
   return (
-    <div className="py-4">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="py-4"
+    >
       <Toast toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
       <ExpenseForm
         title="Add New Expense"
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
       />
-    </div>
+    </motion.div>
   );
 }

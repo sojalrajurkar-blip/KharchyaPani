@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { expensesApi } from '@/lib/api/expenses';
 import { Expense, ExpenseCreateInput } from '@/types';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
@@ -87,7 +88,12 @@ export default function EditExpensePage() {
   }
 
   return (
-    <div className="py-4">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="py-4"
+    >
       <Toast toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
       <ExpenseForm
         title={`Edit Expense (#${expense.id})`}
@@ -95,6 +101,6 @@ export default function EditExpensePage() {
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
       />
-    </div>
+    </motion.div>
   );
 }

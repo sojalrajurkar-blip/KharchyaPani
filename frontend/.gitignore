@@ -7,3 +7,5 @@ build/
 *.log
 coverage/
 test-results/
+*.tsbuildinfo
+

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { categoriesApi } from '@/lib/api/categories';
 import { Category } from '@/types';
 import { CategoryList } from '@/components/categories/CategoryList';
@@ -93,7 +94,12 @@ export default function CategoryManagementPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
 
       <Toast toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
 
@@ -147,6 +153,6 @@ export default function CategoryManagementPage() {
         />
       )}
 
-    </div>
+    </motion.div>
   );
 }

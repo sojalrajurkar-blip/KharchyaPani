@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { Category, ExpenseFilterParams } from '@/types';
 import { Filter, Calendar, Tag, RefreshCw } from 'lucide-react';
 
@@ -16,7 +17,12 @@ export function ExpenseFilterBar({ categories, filters, onChange, onReset }: Exp
   );
 
   return (
-    <div className="glass-card p-5 mb-6">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="glass-card p-5 mb-6"
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-indigo-400" />
@@ -117,6 +123,6 @@ export function ExpenseFilterBar({ categories, filters, onChange, onReset }: Exp
         </div>
 
       </div>
-    </div>
+    </motion.div>
   );
 }

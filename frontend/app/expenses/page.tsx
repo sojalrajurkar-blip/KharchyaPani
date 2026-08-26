@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { expensesApi } from '@/lib/api/expenses';
 import { categoriesApi } from '@/lib/api/categories';
 import { Expense, Category, ExpenseFilterParams } from '@/types';
@@ -70,7 +71,12 @@ export default function ExpenseHistoryPage() {
   const totalFilteredAmount = expenses.reduce((sum, item) => sum + Number(item.amount), 0);
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
 
       <Toast toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
 
@@ -194,6 +200,6 @@ export default function ExpenseHistoryPage() {
         </div>
       )}
 
-    </div>
+    </motion.div>
   );
 }

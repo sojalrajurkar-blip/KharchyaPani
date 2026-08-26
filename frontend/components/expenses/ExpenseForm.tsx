@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Category, Expense, ExpenseCreateInput } from '@/types';
 import { categoriesApi } from '@/lib/api/categories';
 import { validateExpenseForm, ExpenseValidationError } from '@/forms/validation/expense';
@@ -71,7 +72,12 @@ export function ExpenseForm({ initialData, onSubmit, isSubmitting, title }: Expe
   };
 
   return (
-    <div className="max-w-2xl mx-auto glass-card p-6 sm:p-8">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="max-w-2xl mx-auto glass-card p-6 sm:p-8"
+    >
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
         <h2 className="text-xl font-bold text-slate-100">{title}</h2>
         <Link href="/expenses" className="btn-secondary text-xs">
@@ -181,6 +187,6 @@ export function ExpenseForm({ initialData, onSubmit, isSubmitting, title }: Expe
         </div>
 
       </form>
-    </div>
+    </motion.div>
   );
 }
