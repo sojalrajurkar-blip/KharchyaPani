@@ -24,6 +24,7 @@ export async function apiClient<T>(
   };
 
   const config: RequestInit = {
+    cache: 'no-store',
     ...options,
     headers: {
       ...defaultHeaders,
