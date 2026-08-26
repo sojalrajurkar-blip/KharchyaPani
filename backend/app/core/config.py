@@ -5,7 +5,7 @@ from pydantic import field_validator
 class Settings(BaseSettings):
     APP_ENV: str = "development"
     APP_PORT: int = 8000
-    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/kharchyapani_db"
+    DATABASE_URL: str = "postgresql://postgres:password@127.0.0.1:5432/kharchyapani_db"
     DATABASE_USER: str = "postgres"
     DATABASE_PASSWORD: str = "password"
     CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3000"
@@ -22,7 +22,6 @@ class Settings(BaseSettings):
         return v
 
     class Config:
-        env_file = ".env"
         env_file_encoding = "utf-8"
         extra = "ignore"
 
