@@ -39,7 +39,7 @@ export default function CategoryManagementPage() {
       setLoading(true);
       setError(null);
       const data = await categoriesApi.getAll();
-      setCategories(data);
+      setCategories(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err.message || 'Failed to load categories.');
     } finally {

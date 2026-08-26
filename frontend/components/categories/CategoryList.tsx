@@ -11,7 +11,9 @@ interface CategoryListProps {
 }
 
 export function CategoryList({ categories, onEdit, onDelete }: CategoryListProps) {
-  if (!categories || categories.length === 0) {
+  const safeCategories = Array.isArray(categories) ? categories : [];
+
+  if (safeCategories.length === 0) {
     return (
       <div className="glass-card p-8 text-center text-slate-400">
         <div className="p-3 rounded-full bg-slate-800 text-slate-500 w-fit mx-auto mb-3">
@@ -27,11 +29,11 @@ export function CategoryList({ categories, onEdit, onDelete }: CategoryListProps
     <div className="glass-card p-6">
       <div className="flex items-center gap-2 mb-4">
         <FolderKanban className="w-5 h-5 text-indigo-400" />
-        <h3 className="text-lg font-semibold text-slate-100">Managed Categories ({categories.length})</h3>
+        <h3 className="text-lg font-semibold text-slate-100">Managed Categories ({safeCategories.length})</h3>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {categories.map((category) => (
+        {safeCategories.map((category) => (
           <motion.div
             key={category.id}
             initial={{ opacity: 0, scale: 0.98 }}
