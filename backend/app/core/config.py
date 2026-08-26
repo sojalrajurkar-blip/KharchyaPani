@@ -6,8 +6,6 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     APP_PORT: int = 8000
     DATABASE_URL: str = "postgresql://postgres:password@127.0.0.1:5432/kharchyapani_db"
-    DATABASE_USER: str = "postgres"
-    DATABASE_PASSWORD: str = "password"
     CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3000"
     CONTACT_NAME: str = "KharchyaPani Support"
     CONTACT_EMAIL: str = "support@kharchyapani.local"
