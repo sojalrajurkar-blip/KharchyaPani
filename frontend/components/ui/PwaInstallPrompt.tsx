@@ -6,10 +6,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showPrompt, setShowPrompt] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(true); // Always show banner on mobile unless dismissed/installed
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
-    // Register Service Worker in all environments (both dev and prod)
+    // Check if app is ALREADY running as standalone app
+    if (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone) {
+      setIsStandalone(true);
+      return;
+    }
+
+    // Register Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/sw.js')
@@ -31,18 +38,21 @@ export function PwaInstallPrompt() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      console.log('User accepted PWA installation');
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        console.log('User accepted PWA installation');
+      }
+      setDeferredPrompt(null);
+      setShowPrompt(false);
+    } else {
+      alert("To install KharchyaPani on your phone:\n\n📱 Android Chrome: Tap 3 dots (⋮) menu -> 'Add to Home screen' or 'Install app'\n\n🍎 iPhone Safari: Tap Share button (↑) -> 'Add to Home Screen'");
     }
-    setDeferredPrompt(null);
-    setShowPrompt(false);
   };
 
-  if (!showPrompt) return null;
+  // Do not show prompt if app is already running as installed standalone app
+  if (isStandalone || !showPrompt) return null;
 
   return (
     <AnimatePresence>
@@ -50,7 +60,7 @@ export function PwaInstallPrompt() {
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 50 }}
-        className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50 p-4 rounded-2xl backdrop-blur-xl bg-slate-900/90 border border-indigo-500/40 shadow-2xl flex items-center justify-between gap-3 text-slate-100"
+        className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50 p-4 rounded-2xl backdrop-blur-xl bg-slate-900/95 border border-indigo-500/40 shadow-2xl flex items-center justify-between gap-3 text-slate-100"
       >
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
@@ -65,7 +75,7 @@ export function PwaInstallPrompt() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleInstallClick}
-            className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1"
+            className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1 shrink-0"
           >
             <Download className="w-3.5 h-3.5" /> Install
           </button>
