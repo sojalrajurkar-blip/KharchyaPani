@@ -1,16 +1,5 @@
 export const getApiBaseUrl = (): string => {
-  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
-    return process.env.NEXT_PUBLIC_API_BASE_URL;
-  }
-  if (typeof window !== 'undefined') {
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      return 'https://kharchyapani-4nb3.onrender.com';
-    }
-  }
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://kharchyapani-4nb3.onrender.com';
-  }
-  return 'http://localhost:8000';
+  return process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 };
 
 export class APIException extends Error {

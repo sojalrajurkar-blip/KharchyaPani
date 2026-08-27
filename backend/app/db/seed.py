@@ -12,8 +12,11 @@ SEED_CATEGORIES = [
     "Other"
 ]
 
-def seed_categories():
-    db = SessionLocal()
+def seed_categories(db=None):
+    close_db = False
+    if db is None:
+        db = SessionLocal()
+        close_db = True
     try:
         count = db.query(Category).count()
         if count == 0:
@@ -30,7 +33,8 @@ def seed_categories():
         print(f"Error seeding categories: {e}")
         raise e
     finally:
-        db.close()
+        if close_db:
+            db.close()
 
 if __name__ == "__main__":
     seed_categories()
