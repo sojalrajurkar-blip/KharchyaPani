@@ -9,14 +9,12 @@ export function PwaInstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
-    // Check if Service Worker is supported and register it
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker
-          .register('/sw.js')
-          .then((reg) => console.log('PWA Service Worker registered:', reg.scope))
-          .catch((err) => console.error('PWA Service Worker registration failed:', err));
-      });
+    // Register Service Worker in all environments (both dev and prod)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((reg) => console.log('PWA Service Worker registered:', reg.scope))
+        .catch((err) => console.error('PWA Service Worker registration failed:', err));
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
