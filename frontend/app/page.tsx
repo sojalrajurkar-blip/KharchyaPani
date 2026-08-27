@@ -4,17 +4,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { dashboardApi } from '@/lib/api/dashboard';
 import { expensesApi } from '@/lib/api/expenses';
-import { DashboardSummary, Expense } from '@/types';
+import { categoriesApi } from '@/lib/api/categories';
+import { DashboardSummary, Expense, Category } from '@/types';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { RecentExpensesTable } from '@/components/dashboard/RecentExpensesTable';
 import { CategorySummaryChart } from '@/components/dashboard/CategorySummaryChart';
 import { CardSkeleton, TableSkeleton } from '@/components/ui/LoadingSkeleton';
 import { Modal } from '@/components/ui/Modal';
 import { Toast, ToastMessage } from '@/components/ui/Toast';
-import { RefreshCw, AlertCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle, FolderKanban, PlusCircle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,8 +38,12 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await dashboardApi.getSummary();
-      setSummary(data);
+      const [summaryData, categoriesData] = await Promise.all([
+        dashboardApi.getSummary(),
+        categoriesApi.getAll().catch(() => []),
+      ]);
+      setSummary(summaryData);
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (err: any) {
       setError(err.message || 'Failed to load dashboard summary.');
     } finally {
@@ -128,6 +135,33 @@ export default function DashboardPage() {
 
       {/* Header Cards */}
       <DashboardHeader summary={summary} />
+
+      {/* Available Categories Banner */}
+      <div className="glass-card p-6 border border-slate-700/50">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <FolderKanban className="w-5 h-5 text-indigo-400" />
+            <h3 className="text-base font-semibold text-slate-100">
+              Available Categories ({categories.length})
+            </h3>
+          </div>
+          <Link href="/categories" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium">
+            Manage Categories &rarr;
+          </Link>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {categories.map((cat) => (
+            <Link
+              key={cat.id}
+              href="/expenses/new"
+              className="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs font-medium text-slate-200 hover:border-indigo-500/50 hover:bg-slate-700/60 transition-all flex items-center gap-1.5"
+            >
+              <span>{cat.name}</span>
+              <PlusCircle className="w-3 h-3 text-slate-400" />
+            </Link>
+          ))}
+        </div>
+      </div>
 
       {/* Main Grid: Recent Expenses Table & Category Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
