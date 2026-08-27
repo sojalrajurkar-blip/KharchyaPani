@@ -9,9 +9,10 @@ class Expense(Base):
     amount = Column(Numeric(12, 2), nullable=False)
     category_id = Column(Integer, ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False, index=True)
     expense_date = Column(Date, nullable=False, index=True)
+    payment_mode = Column(String(50), nullable=False, server_default="Cash", index=True)
     note = Column(String(500), nullable=True)
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.current_timestamp())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
     category = relationship("Category", back_populates="expenses")
 

@@ -9,6 +9,8 @@ import { DashboardSummary, Expense, Category } from '@/types';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { RecentExpensesTable } from '@/components/dashboard/RecentExpensesTable';
 import { CategorySummaryChart } from '@/components/dashboard/CategorySummaryChart';
+import { ExpensePieChart } from '@/components/dashboard/ExpensePieChart';
+import { DailyBudgetCard } from '@/components/dashboard/DailyBudgetCard';
 import { CardSkeleton, TableSkeleton } from '@/components/ui/LoadingSkeleton';
 import { Modal } from '@/components/ui/Modal';
 import { Toast, ToastMessage } from '@/components/ui/Toast';
@@ -122,7 +124,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-100">Dashboard</h1>
           <p className="text-sm text-slate-400 mt-0.5">
-            Real-time financial overview and recent activity
+            Real-time financial overview, budget tracking, and interactive analytics
           </p>
         </div>
         <button
@@ -133,8 +135,21 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Header Cards */}
+      {/* Header Summary Cards */}
       <DashboardHeader summary={summary} />
+
+      {/* Budget & Pie Chart Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-4">
+          <DailyBudgetCard progress={summary.daily_budget_progress} />
+        </div>
+        <div className="lg:col-span-8">
+          <ExpensePieChart
+            categorySummary={summary.category_summary}
+            paymentModeSummary={summary.payment_mode_summary || []}
+          />
+        </div>
+      </div>
 
       {/* Available Categories Banner */}
       <div className="glass-card p-6 border border-slate-700/50">

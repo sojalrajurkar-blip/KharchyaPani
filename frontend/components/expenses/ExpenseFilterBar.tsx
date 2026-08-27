@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Category, ExpenseFilterParams } from '@/types';
-import { Filter, Calendar, Tag, RefreshCw } from 'lucide-react';
+import { Filter, Calendar, Tag, RefreshCw, CreditCard } from 'lucide-react';
 
 interface ExpenseFilterBarProps {
   categories: Category[];
@@ -11,9 +11,11 @@ interface ExpenseFilterBarProps {
   onReset: () => void;
 }
 
+const PAYMENT_MODES = ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Net Banking', 'Other'];
+
 export function ExpenseFilterBar({ categories, filters, onChange, onReset }: ExpenseFilterBarProps) {
   const hasActiveFilters = Boolean(
-    filters.category_id || filters.date || filters.date_from || filters.date_to
+    filters.category_id || filters.date || filters.date_from || filters.date_to || filters.payment_mode
   );
 
   return (
@@ -38,7 +40,7 @@ export function ExpenseFilterBar({ categories, filters, onChange, onReset }: Exp
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
 
         {/* Filter by Category */}
         <div>
@@ -59,6 +61,30 @@ export function ExpenseFilterBar({ categories, filters, onChange, onReset }: Exp
             {categories.map((cat) => (
               <option key={cat.id} value={cat.id} className="bg-slate-900 text-slate-200">
                 {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Filter by Payment Mode */}
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1 flex items-center gap-1">
+            <CreditCard className="w-3 h-3 text-cyan-400" /> Payment Mode
+          </label>
+          <select
+            value={filters.payment_mode || ''}
+            onChange={(e) =>
+              onChange({
+                ...filters,
+                payment_mode: e.target.value || undefined,
+              })
+            }
+            className="glass-input w-full text-sm"
+          >
+            <option value="" className="bg-slate-900 text-slate-200">All Payment Modes</option>
+            {PAYMENT_MODES.map((mode) => (
+              <option key={mode} value={mode} className="bg-slate-900 text-slate-200">
+                {mode}
               </option>
             ))}
           </select>

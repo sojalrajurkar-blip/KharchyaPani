@@ -10,7 +10,7 @@ import { ExpenseFilterBar } from '@/components/expenses/ExpenseFilterBar';
 import { TableSkeleton } from '@/components/ui/LoadingSkeleton';
 import { Modal } from '@/components/ui/Modal';
 import { Toast, ToastMessage } from '@/components/ui/Toast';
-import { History, PlusCircle, Calendar, Tag, Edit3, Trash2 } from 'lucide-react';
+import { History, PlusCircle, Calendar, Tag, CreditCard, Edit3, Trash2 } from 'lucide-react';
 
 export default function ExpenseHistoryPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -134,7 +134,7 @@ export default function ExpenseHistoryPage() {
           </div>
           <h4 className="text-lg font-semibold text-slate-200">No Expenses Match Filter Criteria</h4>
           <p className="text-xs text-slate-400 mt-1 mb-4">
-            Try adjusting your category or date filters, or add a new expense.
+            Try adjusting your category, payment mode, or date filters, or add a new expense.
           </p>
           <button onClick={() => setFilters({})} className="btn-secondary text-xs">
             Reset Filters
@@ -148,6 +148,7 @@ export default function ExpenseHistoryPage() {
                 <tr>
                   <th className="py-3.5 px-4">Date</th>
                   <th className="py-3.5 px-4">Category</th>
+                  <th className="py-3.5 px-4">Payment Mode</th>
                   <th className="py-3.5 px-4">Note / Description</th>
                   <th className="py-3.5 px-4 text-right">Amount</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
@@ -166,6 +167,12 @@ export default function ExpenseHistoryPage() {
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
                         <Tag className="w-3 h-3" />
                         {exp.category_name || 'Uncategorized'}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                        <CreditCard className="w-3 h-3" />
+                        {exp.payment_mode || 'Cash'}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 max-w-sm truncate text-slate-400">

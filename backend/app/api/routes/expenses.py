@@ -18,6 +18,7 @@ def list_expenses(
     date: Optional[date] = Query(None, description="Filter by exact date"),
     date_from: Optional[date] = Query(None, description="Filter by start date (inclusive)"),
     date_to: Optional[date] = Query(None, description="Filter by end date (inclusive)"),
+    payment_mode: Optional[str] = Query(None, description="Filter by payment mode e.g. Cash, UPI"),
     db: Session = Depends(get_db)
 ):
     return expense_service.get_expenses(
@@ -25,7 +26,8 @@ def list_expenses(
         category_id=category_id,
         expense_date=date,
         date_from=date_from,
-        date_to=date_to
+        date_to=date_to,
+        payment_mode=payment_mode
     )
 
 @router.get("/{expense_id}", response_model=ExpenseResponse, status_code=status.HTTP_200_OK)

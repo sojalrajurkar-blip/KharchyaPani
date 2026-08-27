@@ -16,6 +16,9 @@ export const expensesApi = {
     if (filters.date_to) {
       params.append('date_to', filters.date_to);
     }
+    if (filters.payment_mode) {
+      params.append('payment_mode', filters.payment_mode);
+    }
 
     const queryString = params.toString();
     const endpoint = `/api/expenses${queryString ? `?${queryString}` : ''}`;

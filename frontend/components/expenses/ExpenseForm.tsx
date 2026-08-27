@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Category, Expense, ExpenseCreateInput } from '@/types';
 import { categoriesApi } from '@/lib/api/categories';
 import { validateExpenseForm, ExpenseValidationError } from '@/forms/validation/expense';
-import { IndianRupee, Tag, Calendar, FileText, ArrowLeft, Save } from 'lucide-react';
+import { IndianRupee, Tag, Calendar, FileText, ArrowLeft, Save, CreditCard } from 'lucide-react';
 
 interface ExpenseFormProps {
   initialData?: Expense;
@@ -14,6 +14,8 @@ interface ExpenseFormProps {
   isSubmitting: boolean;
   title: string;
 }
+
+const PAYMENT_MODES = ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Net Banking', 'Other'];
 
 export function ExpenseForm({ initialData, onSubmit, isSubmitting, title }: ExpenseFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -24,6 +26,7 @@ export function ExpenseForm({ initialData, onSubmit, isSubmitting, title }: Expe
   const [expenseDate, setExpenseDate] = useState<string>(
     initialData ? initialData.expense_date : new Date().toISOString().split('T')[0]
   );
+  const [paymentMode, setPaymentMode] = useState<string>(initialData?.payment_mode || 'Cash');
   const [note, setNote] = useState<string>(initialData?.note || '');
 
   const [errors, setErrors] = useState<ExpenseValidationError>({});
@@ -64,6 +67,7 @@ export function ExpenseForm({ initialData, onSubmit, isSubmitting, title }: Expe
         amount: parseFloat(amount),
         category_id: Number(categoryId),
         expense_date: expenseDate,
+        payment_mode: paymentMode,
         note: note ? note.trim() : undefined,
       });
     } catch (err: any) {
@@ -137,6 +141,24 @@ export function ExpenseForm({ initialData, onSubmit, isSubmitting, title }: Expe
             </select>
           )}
           {errors.category_id && <p className="text-xs text-rose-400 mt-1">{errors.category_id}</p>}
+        </div>
+
+        {/* Payment Mode Selector */}
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
+            <CreditCard className="w-4 h-4 text-cyan-400" /> Payment Mode <span className="text-rose-400">*</span>
+          </label>
+          <select
+            value={paymentMode}
+            onChange={(e) => setPaymentMode(e.target.value)}
+            className="glass-input w-full"
+          >
+            {PAYMENT_MODES.map((mode) => (
+              <option key={mode} value={mode} className="bg-slate-900 text-slate-200">
+                {mode}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Date Field */}

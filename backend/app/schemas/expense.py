@@ -7,6 +7,7 @@ class ExpenseCreate(BaseModel):
     amount: Decimal = Field(..., gt=0, decimal_places=2, description="Expense amount must be > 0 with up to 2 decimal places")
     category_id: int = Field(..., description="Category ID reference")
     expense_date: date = Field(..., description="Expense date")
+    payment_mode: str = Field("Cash", max_length=50, description="Payment mode e.g. Cash, UPI, Credit Card, Debit Card, Net Banking, Other")
     note: Optional[str] = Field(None, max_length=500, description="Optional note, max 500 chars")
 
     @field_validator("amount")
@@ -15,6 +16,13 @@ class ExpenseCreate(BaseModel):
         if v <= 0:
             raise ValueError("Amount must be greater than zero.")
         return round(v, 2)
+
+    @field_validator("payment_mode")
+    @classmethod
+    def validate_payment_mode(cls, v: str) -> str:
+        if not v or not v.strip():
+            return "Cash"
+        return v.strip()
 
     @field_validator("note")
     @classmethod
@@ -35,6 +43,7 @@ class ExpenseResponse(BaseModel):
     category_id: int
     category_name: Optional[str] = None
     expense_date: date
+    payment_mode: str = "Cash"
     note: Optional[str] = None
     created_at: datetime
     updated_at: datetime

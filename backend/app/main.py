@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.api.routes import health, contact, categories, expenses, dashboard
+from app.api.routes import health, contact, categories, expenses, dashboard, budgets
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("kharchyapani")
@@ -34,6 +34,7 @@ app.include_router(contact.router)
 app.include_router(categories.router)
 app.include_router(expenses.router)
 app.include_router(dashboard.router)
+app.include_router(budgets.router)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Wallet, LayoutDashboard, History, FolderKanban, PlusCircle, Menu, X } from 'lucide-react';
+import { Wallet, LayoutDashboard, History, FolderKanban, Target, PlusCircle, Menu, X } from 'lucide-react';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -13,6 +13,7 @@ export function Navbar() {
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Expense History', href: '/expenses', icon: History },
     { name: 'Categories', href: '/categories', icon: FolderKanban },
+    { name: 'Budgets', href: '/budgets', icon: Target },
   ];
 
   return (

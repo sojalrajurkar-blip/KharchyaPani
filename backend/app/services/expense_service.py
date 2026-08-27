@@ -14,6 +14,7 @@ def _format_expense_response(expense: Expense) -> ExpenseResponse:
         category_id=expense.category_id,
         category_name=category_name,
         expense_date=expense.expense_date,
+        payment_mode=expense.payment_mode or "Cash",
         note=expense.note,
         created_at=expense.created_at,
         updated_at=expense.updated_at
@@ -24,7 +25,8 @@ def get_expenses(
     category_id: Optional[int] = None,
     expense_date: Optional[date] = None,
     date_from: Optional[date] = None,
-    date_to: Optional[date] = None
+    date_to: Optional[date] = None,
+    payment_mode: Optional[str] = None
 ) -> List[ExpenseResponse]:
     query = db.query(Expense).join(Category)
     
@@ -36,6 +38,8 @@ def get_expenses(
         query = query.filter(Expense.expense_date >= date_from)
     if date_to is not None:
         query = query.filter(Expense.expense_date <= date_to)
+    if payment_mode:
+        query = query.filter(Expense.payment_mode == payment_mode)
 
     expenses = query.order_by(Expense.expense_date.desc(), Expense.id.desc()).all()
     return [_format_expense_response(e) for e in expenses]
@@ -61,6 +65,7 @@ def create_expense(db: Session, expense_in: ExpenseCreate) -> ExpenseResponse:
         amount=expense_in.amount,
         category_id=expense_in.category_id,
         expense_date=expense_in.expense_date,
+        payment_mode=expense_in.payment_mode,
         note=expense_in.note
     )
     db.add(expense)
@@ -86,6 +91,7 @@ def update_expense(db: Session, expense_id: int, expense_in: ExpenseUpdate) -> E
     expense.amount = expense_in.amount
     expense.category_id = expense_in.category_id
     expense.expense_date = expense_in.expense_date
+    expense.payment_mode = expense_in.payment_mode
     expense.note = expense_in.note
     db.commit()
     db.refresh(expense)

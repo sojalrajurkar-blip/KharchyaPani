@@ -18,6 +18,7 @@ export interface Expense {
   category_id: number;
   category_name?: string;
   expense_date: string;
+  payment_mode?: string;
   note?: string;
   created_at: string;
   updated_at: string;
@@ -27,6 +28,7 @@ export interface ExpenseCreateInput {
   amount: number;
   category_id: number;
   expense_date: string;
+  payment_mode?: string;
   note?: string;
 }
 
@@ -34,6 +36,7 @@ export interface ExpenseUpdateInput {
   amount: number;
   category_id: number;
   expense_date: string;
+  payment_mode?: string;
   note?: string;
 }
 
@@ -44,11 +47,50 @@ export interface CategorySummaryItem {
   count: number;
 }
 
+export interface PaymentModeSummaryItem {
+  payment_mode: string;
+  total: number;
+  count: number;
+}
+
+export interface Budget {
+  id: number;
+  period_type: 'daily' | 'monthly';
+  category_id?: number | null;
+  category_name?: string | null;
+  amount_limit: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BudgetCreateInput {
+  period_type: 'daily' | 'monthly';
+  category_id?: number | null;
+  amount_limit: number;
+}
+
+export interface BudgetUpdateInput {
+  amount_limit: number;
+}
+
+export interface BudgetProgress {
+  id?: number | null;
+  period_type: 'daily' | 'monthly';
+  category_id?: number | null;
+  category_name?: string | null;
+  amount_limit: number;
+  spent_amount: number;
+  remaining_amount: number;
+  percentage: number;
+}
+
 export interface DashboardSummary {
   total_expense: number;
   expense_count: number;
   recent_expenses: Expense[];
   category_summary: CategorySummaryItem[];
+  payment_mode_summary: PaymentModeSummaryItem[];
+  daily_budget_progress?: BudgetProgress | null;
 }
 
 export interface ExpenseFilterParams {
@@ -56,6 +98,7 @@ export interface ExpenseFilterParams {
   date?: string;
   date_from?: string;
   date_to?: string;
+  payment_mode?: string;
 }
 
 export interface APIError {
