@@ -6,7 +6,6 @@ import { PwaInstallPrompt } from '@/components/ui/PwaInstallPrompt';
 export const metadata: Metadata = {
   title: 'KharchyaPani — Personal Expense Tracker',
   description: 'Track, manage, and understand your personal expenses dynamically with live database persistence.',
-  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
