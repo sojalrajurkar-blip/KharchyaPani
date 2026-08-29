@@ -23,10 +23,10 @@ export function Navbar() {
 
           {/* Logo & Brand Name */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="p-2 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 group-hover:bg-indigo-600/30 transition-colors">
+            <div className="p-2 rounded-xl bg-sky-500/15 text-sky-400 border border-sky-500/30 group-hover:bg-sky-500/25 transition-colors shadow-[0_0_12px_rgba(14,165,233,0.2)]">
               <Wallet className="w-5 h-5" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-300 bg-clip-text text-transparent tracking-tight">
               KharchyaPani
             </span>
           </Link>
@@ -40,9 +40,9 @@ export function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${
                     isActive
-                      ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-sm'
+                      ? 'bg-sky-500/15 text-sky-300 border border-sky-500/30 shadow-[0_0_12px_rgba(14,165,233,0.15)]'
                       : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >

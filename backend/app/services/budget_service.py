@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from typing import List, Optional
 from decimal import Decimal
 from datetime import date
+import calendar
 from app.models.budget import Budget
 from app.models.category import Category
 from app.models.expense import Expense
@@ -83,6 +84,8 @@ def get_budget_statuses(db: Session) -> List[BudgetProgress]:
 
     today = date.today()
     first_of_month = today.replace(day=1)
+    _, last_day = calendar.monthrange(today.year, today.month)
+    end_of_month = today.replace(day=last_day)
 
     for b in budgets:
         query = db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
@@ -92,7 +95,10 @@ def get_budget_statuses(db: Session) -> List[BudgetProgress]:
         if b.period_type == "daily":
             query = query.filter(Expense.expense_date == today)
         else:
-            query = query.filter(Expense.expense_date >= first_of_month)
+            query = query.filter(
+                Expense.expense_date >= first_of_month,
+                Expense.expense_date <= end_of_month
+            )
 
         spent = query.scalar() or Decimal("0.00")
         remaining = b.amount_limit - spent

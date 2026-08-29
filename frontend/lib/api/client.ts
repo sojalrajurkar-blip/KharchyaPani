@@ -2,9 +2,6 @@ export const getApiBaseUrl = (): string => {
   if (process.env.NEXT_PUBLIC_API_BASE_URL) {
     return process.env.NEXT_PUBLIC_API_BASE_URL;
   }
-  if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
-    return 'https://kharchyapani-4nb3.onrender.com';
-  }
   return 'http://localhost:8000';
 };
 
@@ -54,8 +51,12 @@ export async function apiClient<T>(
       let errorMessage = 'An unexpected error occurred.';
       if (typeof data.detail === 'string') {
         errorMessage = data.detail;
-      } else if (Array.isArray(data.detail)) {
-        errorMessage = data.detail.map((err: any) => `${err.loc.join('.')}: ${err.msg}`).join(', ');
+      } else if (typeof data.detail === 'object' && data.detail !== null) {
+        if (data.detail.message) {
+          errorMessage = data.detail.message;
+        } else if (Array.isArray(data.detail)) {
+          errorMessage = data.detail.map((err: any) => `${err.loc?.join('.') || 'field'}: ${err.msg || 'invalid'}`).join(', ');
+        }
       }
       throw new APIException(errorMessage, response.status, data);
     }

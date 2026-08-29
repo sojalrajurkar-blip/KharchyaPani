@@ -1,8 +1,14 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List, Union
 from pydantic import field_validator
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
+
     APP_ENV: str = "development"
     APP_PORT: int = 8000
     DATABASE_URL: str = "postgresql://postgres:password@127.0.0.1:5432/kharchyapani_db"
@@ -18,10 +24,5 @@ class Settings(BaseSettings):
                 return []
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        extra = "ignore"
 
 settings = Settings()

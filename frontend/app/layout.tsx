@@ -33,8 +33,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="antialiased selection:bg-indigo-500 selection:text-white bg-slate-950">
-        <div className="min-h-screen flex flex-col">
+      <body className="antialiased selection:bg-sky-500 selection:text-white relative min-h-screen text-slate-100 overflow-x-hidden">
+        {/* Sleek Titanium & Ice Blue Ambient Glowing Orbs & Tech Micro-Grid */}
+        <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+          {/* Top Left Electric Ice Blue Glow */}
+          <div className="absolute -top-[15%] -left-[10%] w-[650px] h-[650px] rounded-full bg-gradient-to-br from-sky-500/22 via-cyan-500/12 to-transparent blur-[140px]" />
+          {/* Top Right Deep Titanium & Steel Blue Glow */}
+          <div className="absolute top-[10%] -right-[15%] w-[700px] h-[700px] rounded-full bg-gradient-to-bl from-blue-600/18 via-slate-700/20 to-transparent blur-[150px]" />
+          {/* Bottom Left Ice Cyan Accent Glow */}
+          <div className="absolute bottom-[0%] left-[25%] w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-cyan-500/18 via-sky-600/10 to-transparent blur-[130px]" />
+          {/* Micro-dot Grid Pattern with Ice Blue Tint */}
+          <div className="absolute inset-0 bg-[radial-gradient(rgba(56,189,248,0.08)_1px,transparent_1px)] [background-size:26px_26px] opacity-80" />
+        </div>
+
+        <div className="min-h-screen flex flex-col relative z-0">
           <Navbar />
           <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {children}
