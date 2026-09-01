@@ -34,8 +34,8 @@ def set_refresh_cookie(response: Response, refresh_token: str) -> None:
         expires=max_age,
         path="/",
         httponly=True,
-        secure=is_prod,  # True in production HTTPS, False in local HTTP dev
-        samesite="lax"
+        secure=is_prod,
+        samesite="none" if is_prod else "lax"
     )
 
 def clear_refresh_cookie(response: Response) -> None:
@@ -46,7 +46,7 @@ def clear_refresh_cookie(response: Response) -> None:
         path="/",
         httponly=True,
         secure=is_prod,
-        samesite="lax"
+        samesite="none" if is_prod else "lax"
     )
 
 # ---------------------------------------------------------------------------
