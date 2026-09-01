@@ -15,10 +15,12 @@ import { CardSkeleton, TableSkeleton } from '@/components/ui/LoadingSkeleton';
 import { Modal } from '@/components/ui/Modal';
 import { Toast, ToastMessage } from '@/components/ui/Toast';
 import AuthGuard from '@/components/auth/AuthGuard';
+import { useAuth } from '@/context/AuthContext';
 import { RefreshCw, AlertCircle, FolderKanban, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 
-export default function DashboardPage() {
+function DashboardContent() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,8 +57,10 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchDashboard();
-  }, [fetchDashboard]);
+    if (!authLoading && isAuthenticated) {
+      fetchDashboard();
+    }
+  }, [authLoading, isAuthenticated, fetchDashboard]);
 
   const handleDeleteExpense = async () => {
     if (!deletingExpense) return;
@@ -93,7 +97,7 @@ export default function DashboardPage() {
           <AlertCircle className="w-8 h-8" />
         </div>
         <h3 className="text-xl font-bold text-slate-100">Unable to Load Dashboard</h3>
-        <p className="text-sm text-slate-400 mt-2 mb-6">{error || 'Database connection unavailable.'}</p>
+        <p className="text-sm text-slate-400 mt-2 mb-6">{error || 'Financial data unavailable.'}</p>
         <button onClick={fetchDashboard} className="btn-primary text-sm">
           <RefreshCw className="w-4 h-4" /> Retry
         </button>
@@ -102,101 +106,105 @@ export default function DashboardPage() {
   }
 
   return (
-    <AuthGuard>
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="space-y-8"
-      >
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-8"
+    >
+      <Toast toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
 
-        <Toast toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
+      <Modal
+        isOpen={Boolean(deletingExpense)}
+        title="Delete Expense"
+        message={`Are you sure you want to delete the expense of ₹${deletingExpense?.amount}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={handleDeleteExpense}
+        onCancel={() => setDeletingExpense(null)}
+      />
 
-        <Modal
-          isOpen={Boolean(deletingExpense)}
-          title="Delete Expense"
-          message={`Are you sure you want to delete the expense of ₹${deletingExpense?.amount}? This action cannot be undone.`}
-          confirmLabel="Delete"
-          onConfirm={handleDeleteExpense}
-          onCancel={() => setDeletingExpense(null)}
-        />
-
-        {/* Title */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-extrabold text-slate-100">Dashboard</h1>
-            <p className="text-sm text-slate-400 mt-0.5">
-              Real-time financial overview, budget tracking, and interactive analytics
-            </p>
-          </div>
-          <button
-            onClick={fetchDashboard}
-            className="btn-secondary text-xs self-start sm:self-auto"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh Data
-          </button>
+      {/* Title */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-100">Dashboard</h1>
+          <p className="text-sm text-slate-400 mt-0.5">
+            Real-time financial overview, budget tracking, and interactive analytics
+          </p>
         </div>
+        <button
+          onClick={fetchDashboard}
+          className="btn-secondary text-xs self-start sm:self-auto"
+        >
+          <RefreshCw className="w-3.5 h-3.5" /> Refresh Data
+        </button>
+      </div>
 
-        {/* Header Summary Cards */}
-        <DashboardHeader summary={summary} />
+      {/* Header Summary Cards */}
+      <DashboardHeader summary={summary} />
 
-        {/* Budget & Pie Chart Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-4">
-            <DailyBudgetCard progress={summary.daily_budget_progress} />
-          </div>
-          <div className="lg:col-span-8">
-            <ExpensePieChart
-              categorySummary={summary.category_summary}
-              paymentModeSummary={summary.payment_mode_summary || []}
-            />
-          </div>
+      {/* Budget & Pie Chart Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-4">
+          <DailyBudgetCard progress={summary.daily_budget_progress} />
         </div>
+        <div className="lg:col-span-8">
+          <ExpensePieChart
+            categorySummary={summary.category_summary}
+            paymentModeSummary={summary.payment_mode_summary || []}
+          />
+        </div>
+      </div>
 
-        {/* Available Categories Banner */}
-        <div className="glass-card p-6 border border-slate-700/50">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <FolderKanban className="w-5 h-5 text-indigo-400" />
-              <h3 className="text-base font-semibold text-slate-100">
-                Available Categories ({categories.length})
-              </h3>
-            </div>
-            <Link href="/categories" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium">
-              Manage Categories &rarr;
+      {/* Available Categories Banner */}
+      <div className="glass-card p-6 border border-slate-700/50">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <FolderKanban className="w-5 h-5 text-indigo-400" />
+            <h3 className="text-base font-semibold text-slate-100">
+              Available Categories ({categories.length})
+            </h3>
+          </div>
+          <Link href="/categories" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium">
+            Manage Categories &rarr;
+          </Link>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {categories.map((cat) => (
+            <Link
+              key={cat.id}
+              href="/expenses/new"
+              className="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs font-medium text-slate-200 hover:border-indigo-500/50 hover:bg-slate-700/60 transition-all flex items-center gap-1.5"
+            >
+              <span>{cat.name}</span>
+              <PlusCircle className="w-3 h-3 text-slate-400" />
             </Link>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => (
-              <Link
-                key={cat.id}
-                href="/expenses/new"
-                className="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs font-medium text-slate-200 hover:border-indigo-500/50 hover:bg-slate-700/60 transition-all flex items-center gap-1.5"
-              >
-                <span>{cat.name}</span>
-                <PlusCircle className="w-3 h-3 text-slate-400" />
-              </Link>
-            ))}
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* Main Grid: Recent Expenses Table & Category Breakdown */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <RecentExpensesTable
-              expenses={summary.recent_expenses}
-              onDeleteRequest={(expense) => setDeletingExpense(expense)}
-            />
-          </div>
-          <div>
-            <CategorySummaryChart
-              summaryItems={summary.category_summary}
-              totalExpense={Number(summary.total_expense)}
-            />
-          </div>
+      {/* Main Grid: Recent Expenses Table & Category Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <RecentExpensesTable
+            expenses={summary.recent_expenses}
+            onDeleteRequest={(expense) => setDeletingExpense(expense)}
+          />
         </div>
+        <div>
+          <CategorySummaryChart
+            summaryItems={summary.category_summary}
+            totalExpense={Number(summary.total_expense)}
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
-      </motion.div>
+export default function DashboardPage() {
+  return (
+    <AuthGuard>
+      <DashboardContent />
     </AuthGuard>
   );
 }
