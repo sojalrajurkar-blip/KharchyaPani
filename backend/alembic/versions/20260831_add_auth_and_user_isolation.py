@@ -72,6 +72,11 @@ def upgrade() -> None:
 
     # 4. Add user_id to categories
     with op.batch_alter_table('categories') as batch_op:
+        try:
+            batch_op.drop_index('ix_categories_name')
+        except Exception:
+            pass
+        batch_op.create_index(op.f('ix_categories_name'), ['name'], unique=False)
         batch_op.add_column(sa.Column('user_id', sa.Integer(), nullable=True))
         batch_op.create_foreign_key('fk_categories_user_id', 'users', ['user_id'], ['id'], ondelete='CASCADE')
         batch_op.create_index(op.f('ix_categories_user_id'), ['user_id'], unique=False)

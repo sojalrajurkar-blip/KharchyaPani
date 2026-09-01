@@ -28,7 +28,11 @@ export default function LoginPage() {
     const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!googleClientId || googleClientId.includes('your-google-oauth-client-id')) return;
 
+    // Check if script already exists
+    if (document.getElementById('google-jssdk')) return;
+
     const script = document.createElement('script');
+    script.id = 'google-jssdk';
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
@@ -36,6 +40,8 @@ export default function LoginPage() {
       if ((window as any).google?.accounts?.id) {
         (window as any).google.accounts.id.initialize({
           client_id: googleClientId,
+          auto_select: false,
+          cancel_on_tap_outside: true,
           callback: async (response: any) => {
             if (response.credential) {
               try {
@@ -55,9 +61,7 @@ export default function LoginPage() {
     document.body.appendChild(script);
 
     return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
+      // Keep script in document for reuse
     };
   }, [googleLogin, router]);
 
@@ -87,20 +91,28 @@ export default function LoginPage() {
     // Check if real Google Client ID is configured
     if (googleClientId && !googleClientId.includes('your-google-oauth-client-id')) {
       if ((window as any).google?.accounts?.id) {
-        (window as any).google.accounts.id.prompt();
-      } else {
-        setError('Google Identity Services script is loading. Please try again in a moment.');
+        (window as any).google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            // If One Tap prompt was blocked or closed, try fallback dev login in dev mode
+            if (process.env.NODE_ENV === 'development') {
+              loginWithDevFallback();
+            }
+          }
+        });
+        return;
       }
-      return;
     }
 
-    // Local dev mock fallback when Client ID is not yet created in Google Cloud Console
+    await loginWithDevFallback();
+  };
+
+  const loginWithDevFallback = async () => {
     try {
       setIsSubmitting(true);
-      await googleLogin('dev_google_user@kharchyapani.local:Google Demo User');
+      await googleLogin('dev_google_user:demo.user@kharchyapani.local:Demo Google User');
       router.push('/');
     } catch (err: any) {
-      setError(err.message || 'Google login failed.');
+      setError(err.message || 'Google login failed. Ensure the backend server is running on http://localhost:8000.');
     } finally {
       setIsSubmitting(false);
     }

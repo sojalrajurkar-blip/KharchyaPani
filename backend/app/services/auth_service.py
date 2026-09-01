@@ -86,11 +86,16 @@ class AuthService:
             google_id = "google_dev_1092837465"
             full_name = "Google Demo User"
             if ":" in credential:
-                parts = credential.split(":", 2)
-                if len(parts) >= 2 and "@" in parts[1]:
-                    email = parts[1].strip().lower()
+                parts = [p.strip() for p in credential.split(":") if p.strip()]
+                found_email = next((p for p in parts if "@" in p), None)
+                if found_email:
+                    email = found_email.lower()
                     google_id = f"google_dev_{abs(hash(email)) % 10000000000}"
-                    full_name = parts[2] if len(parts) > 2 else email.split("@")[0].capitalize()
+                    name_parts = [p for p in parts if p != found_email and not p.startswith("dev_google")]
+                    if name_parts:
+                        full_name = " ".join(name_parts)
+                    else:
+                        full_name = email.split("@")[0].capitalize()
         else:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(
@@ -110,9 +115,10 @@ class AuthService:
                 raise ValueError("Google credential missing required claims.")
 
             # Validate audience against GOOGLE_CLIENT_ID if configured
-            if settings.GOOGLE_CLIENT_ID:
+            configured_client_id = settings.GOOGLE_CLIENT_ID.strip('"').strip("'").strip()
+            if configured_client_id:
                 aud = token_info.get("aud")
-                if aud and aud != settings.GOOGLE_CLIENT_ID:
+                if aud and aud != configured_client_id:
                     raise ValueError("Google credential audience mismatch.")
 
         email = email.strip().lower()

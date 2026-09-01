@@ -27,7 +27,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_categories_id'), 'categories', ['id'], unique=False)
-    op.create_index(op.f('ix_categories_name'), 'categories', ['name'], unique=True)
+    op.create_index(op.f('ix_categories_name'), 'categories', ['name'], unique=False)
     op.create_table('expenses',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('amount', sa.Numeric(precision=12, scale=2), nullable=False),
