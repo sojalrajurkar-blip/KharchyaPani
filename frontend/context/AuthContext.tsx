@@ -26,10 +26,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const initAuth = async () => {
     try {
-      // Attempt silent refresh on startup using HttpOnly cookie
-      const res = await authApi.refresh();
-      if (res && res.user) {
-        setUser(res.user);
+      const token = getAccessToken();
+      if (token) {
+        setAccessToken(token);
+        const me = await authApi.getMe();
+        setUser(me);
+      } else {
+        // Attempt silent refresh on startup using HttpOnly cookie
+        const res = await authApi.refresh();
+        if (res && res.user) {
+          setUser(res.user);
+        }
       }
     } catch {
       setUser(null);

@@ -24,10 +24,23 @@ let refreshSubscribers: ((token: string | null) => void)[] = [];
 
 export const setAccessToken = (token: string | null) => {
   inMemoryAccessToken = token;
+  if (typeof window !== 'undefined') {
+    if (token) {
+      localStorage.setItem('kharchyapani_access_token', token);
+    } else {
+      localStorage.removeItem('kharchyapani_access_token');
+    }
+  }
 };
 
 export const getAccessToken = (): string | null => {
-  return inMemoryAccessToken;
+  if (inMemoryAccessToken) {
+    return inMemoryAccessToken;
+  }
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('kharchyapani_access_token');
+  }
+  return null;
 };
 
 const onRefreshed = (token: string | null) => {
