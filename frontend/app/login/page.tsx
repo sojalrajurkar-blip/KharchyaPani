@@ -23,6 +23,44 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  // Load Google Identity Services script dynamically
+  useEffect(() => {
+    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!googleClientId || googleClientId.includes('your-google-oauth-client-id')) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      if ((window as any).google?.accounts?.id) {
+        (window as any).google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: async (response: any) => {
+            if (response.credential) {
+              try {
+                setIsSubmitting(true);
+                await googleLogin(response.credential);
+                router.push('/');
+              } catch (err: any) {
+                setError(err.message || 'Google sign in failed.');
+              } finally {
+                setIsSubmitting(false);
+              }
+            }
+          },
+        });
+      }
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, [googleLogin, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -42,13 +80,27 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoGoogleLogin = async () => {
-    // In production, Google One Tap / Google Identity Services populates this credential
+  const handleGoogleLoginClick = async () => {
     setError(null);
+    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+    // Check if real Google Client ID is configured
+    if (googleClientId && !googleClientId.includes('your-google-oauth-client-id')) {
+      if ((window as any).google?.accounts?.id) {
+        (window as any).google.accounts.id.prompt();
+      } else {
+        setError('Google Identity Services script is loading. Please try again in a moment.');
+      }
+      return;
+    }
+
+    // Local dev mock fallback when Client ID is not yet created in Google Cloud Console
     try {
       setIsSubmitting(true);
-      // If GOOGLE_CLIENT_ID is not configured in local dev, provide informative feedback
-      setError('Google Sign-In requires NEXT_PUBLIC_GOOGLE_CLIENT_ID configured in .env.local.');
+      await googleLogin('dev_google_user@kharchyapani.local:Google Demo User');
+      router.push('/');
+    } catch (err: any) {
+      setError(err.message || 'Google login failed.');
     } finally {
       setIsSubmitting(false);
     }
@@ -172,7 +224,7 @@ export default function LoginPage() {
             {/* Google Sign-In */}
             <button
               type="button"
-              onClick={handleDemoGoogleLogin}
+              onClick={handleGoogleLoginClick}
               className="w-full py-2.5 px-4 rounded-xl border border-slate-800 bg-slate-950/60 hover:bg-slate-800/50 text-slate-200 font-medium text-sm transition-all flex items-center justify-center gap-3 group"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
