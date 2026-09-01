@@ -107,6 +107,10 @@ def login(
         user=UserResponse.model_validate(user)
     )
 
+import logging
+
+logger = logging.getLogger("kharchyapani")
+
 # ---------------------------------------------------------------------------
 # Google OAuth Sign-In
 # ---------------------------------------------------------------------------
@@ -120,14 +124,21 @@ async def google_auth(
     try:
         user = await AuthService.authenticate_google(db, auth_in.credential)
     except ValueError as e:
+        logger.warning(f"Google auth validation error: {e}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"Google auth error: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Google sign-in error: {str(e)}")
 
     access_token = create_access_token({"sub": str(user.id), "email": user.email})
     client_ip = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent")
-    refresh_token = AuthService.issue_refresh_token(db, user.id, user_agent=user_agent, ip_address=client_ip)
+    try:
+        refresh_token = AuthService.issue_refresh_token(db, user.id, user_agent=user_agent, ip_address=client_ip)
+        set_refresh_cookie(response, refresh_token)
+    except Exception as e:
+        logger.error(f"Error issuing refresh token: {e}", exc_info=True)
 
-    set_refresh_cookie(response, refresh_token)
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
