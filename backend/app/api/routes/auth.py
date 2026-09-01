@@ -1,6 +1,7 @@
+import logging
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Cookie
 from sqlalchemy.orm import Session
-from typing import Optional
 from app.db.session import get_db
 from app.api.deps import get_current_active_user, check_rate_limit
 from app.models.user import User
@@ -18,6 +19,8 @@ from app.schemas.auth import (
 from app.services.auth_service import AuthService
 from app.core.security import create_access_token
 from app.core.config import settings
+
+logger = logging.getLogger("kharchyapani")
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -106,10 +109,6 @@ def login(
         token_type="bearer",
         user=UserResponse.model_validate(user)
     )
-
-import logging
-
-logger = logging.getLogger("kharchyapani")
 
 # ---------------------------------------------------------------------------
 # Google OAuth Sign-In
