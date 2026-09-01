@@ -19,9 +19,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push('/');
+      window.location.href = '/';
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading]);
 
   // Load Google Identity Services script dynamically
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function LoginPage() {
               try {
                 setIsSubmitting(true);
                 await googleLogin(response.credential);
-                router.push('/');
+                window.location.href = '/';
               } catch (err: any) {
                 setError(err.message || 'Google sign in failed.');
               } finally {
@@ -63,7 +63,7 @@ export default function LoginPage() {
     return () => {
       // Keep script in document for reuse
     };
-  }, [googleLogin, router]);
+  }, [googleLogin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +76,7 @@ export default function LoginPage() {
     try {
       setIsSubmitting(true);
       await login({ email, password });
-      router.push('/');
+      window.location.href = '/';
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -110,7 +110,7 @@ export default function LoginPage() {
     try {
       setIsSubmitting(true);
       await googleLogin('dev_google_user:demo.user@kharchyapani.local:Demo Google User');
-      router.push('/');
+      window.location.href = '/';
     } catch (err: any) {
       setError(err.message || 'Google login failed. Ensure the backend server is running on http://localhost:8000.');
     } finally {

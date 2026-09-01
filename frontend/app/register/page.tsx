@@ -21,9 +21,9 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push('/');
+      window.location.href = '/';
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading]);
 
   // Load Google Identity Services script dynamically
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function RegisterPage() {
               try {
                 setIsSubmitting(true);
                 await googleLogin(response.credential);
-                router.push('/');
+                window.location.href = '/';
               } catch (err: any) {
                 setError(err.message || 'Google registration failed.');
               } finally {
@@ -62,7 +62,7 @@ export default function RegisterPage() {
     document.body.appendChild(script);
 
     return () => {};
-  }, [googleLogin, router]);
+  }, [googleLogin]);
 
   const handleGoogleSignupClick = async () => {
     setError(null);
@@ -88,7 +88,7 @@ export default function RegisterPage() {
     try {
       setIsSubmitting(true);
       await googleLogin('dev_google_user:demo.user@kharchyapani.local:Demo Google User');
-      router.push('/');
+      window.location.href = '/';
     } catch (err: any) {
       setError(err.message || 'Google registration failed. Ensure backend server is running.');
     } finally {
@@ -115,31 +115,22 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
 
-    if (!fullName || !email || !password) {
-      setError('Please fill in all required fields.');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
-
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
     }
 
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
-      await register({
-        full_name: fullName,
-        email,
-        password,
-      });
-      router.push('/');
+      await register({ email, password, full_name: fullName });
+      window.location.href = '/';
     } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+      setError(err.message || 'Registration failed. Please check your information.');
     } finally {
       setIsSubmitting(false);
     }
