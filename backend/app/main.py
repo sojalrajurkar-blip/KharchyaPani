@@ -3,6 +3,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from sqlalchemy import text
 from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine
@@ -12,11 +13,29 @@ from app.api.routes import health, contact, auth, categories, expenses, dashboar
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("kharchyapani")
 
-# Ensure all database tables exist on startup
+# Ensure all database tables exist on startup and patch legacy constraints
 try:
     Base.metadata.create_all(bind=engine)
+    with engine.connect() as conn:
+        # If an old global unique constraint/index exists on categories(name), drop it
+        # so categories are scoped per-user (uq_user_category_name)
+        try:
+            conn.execute(text("ALTER TABLE categories DROP CONSTRAINT IF EXISTS ix_categories_name;"))
+            conn.commit()
+        except Exception:
+            pass
+        try:
+            conn.execute(text("DROP INDEX IF EXISTS ix_categories_name;"))
+            conn.commit()
+        except Exception:
+            pass
+        try:
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_categories_name ON categories (name);"))
+            conn.commit()
+        except Exception:
+            pass
 except Exception as e:
-    logger.error(f"Error creating database tables: {e}")
+    logger.error(f"Error creating/patching database tables: {e}")
 
 app = FastAPI(
     title="KharchyaPani API",

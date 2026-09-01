@@ -53,7 +53,9 @@ class AuthService:
 
         # Seed starter categories for the new user
         for cat_name in STARTER_CATEGORIES:
-            db.add(Category(user_id=db_user.id, name=cat_name))
+            exists = db.query(Category).filter(Category.user_id == db_user.id, Category.name == cat_name).first()
+            if not exists:
+                db.add(Category(user_id=db_user.id, name=cat_name))
 
         db.commit()
         db.refresh(db_user)
@@ -148,7 +150,9 @@ class AuthService:
 
                 # Seed starter categories
                 for cat_name in STARTER_CATEGORIES:
-                    db.add(Category(user_id=user.id, name=cat_name))
+                    exists = db.query(Category).filter(Category.user_id == user.id, Category.name == cat_name).first()
+                    if not exists:
+                        db.add(Category(user_id=user.id, name=cat_name))
 
                 db.commit()
                 db.refresh(user)
