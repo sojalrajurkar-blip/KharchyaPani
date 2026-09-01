@@ -30,35 +30,62 @@ export default function RegisterPage() {
     const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!googleClientId || googleClientId.includes('your-google-oauth-client-id')) return;
 
-    if (document.getElementById('google-jssdk')) return;
+    const initGoogle = () => {
+      if ((window as any).google?.accounts?.id) {
+        try {
+          (window as any).google.accounts.id.initialize({
+            client_id: googleClientId,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+            callback: async (response: any) => {
+              if (response.credential) {
+                try {
+                  setIsSubmitting(true);
+                  await googleLogin(response.credential);
+                  window.location.href = '/';
+                } catch (err: any) {
+                  setError(err.message || 'Google registration failed.');
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }
+            },
+          });
+
+          const btnContainer = document.getElementById('google-signup-btn-wrapper');
+          if (btnContainer) {
+            btnContainer.innerHTML = '';
+            (window as any).google.accounts.id.renderButton(btnContainer, {
+              theme: 'filled_black',
+              size: 'large',
+              width: 320,
+              text: 'signup_with',
+              shape: 'pill',
+            });
+          }
+        } catch (e) {
+          console.error('Error initializing Google Sign-Up:', e);
+        }
+      }
+    };
+
+    if ((window as any).google?.accounts?.id) {
+      initGoogle();
+      return;
+    }
+
+    if (document.getElementById('google-jssdk')) {
+      const existing = document.getElementById('google-jssdk') as HTMLScriptElement;
+      existing.addEventListener('load', initGoogle);
+      return;
+    }
 
     const script = document.createElement('script');
     script.id = 'google-jssdk';
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
-    script.onload = () => {
-      if ((window as any).google?.accounts?.id) {
-        (window as any).google.accounts.id.initialize({
-          client_id: googleClientId,
-          auto_select: false,
-          cancel_on_tap_outside: true,
-          callback: async (response: any) => {
-            if (response.credential) {
-              try {
-                setIsSubmitting(true);
-                await googleLogin(response.credential);
-                window.location.href = '/';
-              } catch (err: any) {
-                setError(err.message || 'Google registration failed.');
-              } finally {
-                setIsSubmitting(false);
-              }
-            }
-          },
-        });
-      }
-    };
+    script.onload = initGoogle;
     document.body.appendChild(script);
 
     return () => {};
@@ -297,31 +324,35 @@ export default function RegisterPage() {
             </div>
 
             {/* Google Sign-Up */}
-            <button
-              type="button"
-              onClick={handleGoogleSignupClick}
-              className="w-full py-2.5 px-4 rounded-xl border border-slate-800 bg-slate-950/60 hover:bg-slate-800/50 text-slate-200 font-medium text-sm transition-all flex items-center justify-center gap-3 group"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path
-                  fill="#EA4335"
-                  d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
-                />
-                <path
-                  fill="#4285F4"
-                  d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15s.7 5.3 1.9 7.7l3.7-2.9z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16c1.8 3.7 5.6 6.3 10.1 6.3z"
-                />
-              </svg>
-              <span>Sign up with Google</span>
-            </button>
+            <div className="flex flex-col items-center justify-center gap-3 w-full">
+              <div id="google-signup-btn-wrapper" className="w-full flex justify-center min-h-[44px]"></div>
+
+              <button
+                type="button"
+                onClick={handleGoogleSignupClick}
+                className="w-full py-2.5 px-4 rounded-xl border border-slate-800 bg-slate-950/60 hover:bg-slate-800/50 text-slate-200 font-medium text-sm transition-all flex items-center justify-center gap-3 group"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path
+                    fill="#EA4335"
+                    d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3 0-.8.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12.3 0 15s.7 5.3 1.9 7.7l3.7-2.9z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16c1.8 3.7 5.6 6.3 10.1 6.3z"
+                  />
+                </svg>
+                <span>Sign up with Google</span>
+              </button>
+            </div>
 
             {/* Footer switch */}
             <div className="mt-8 text-center text-sm text-slate-400">
