@@ -9,6 +9,7 @@ import { CategoryFormModal } from '@/components/categories/CategoryFormModal';
 import { CardSkeleton } from '@/components/ui/LoadingSkeleton';
 import { Modal } from '@/components/ui/Modal';
 import { Toast, ToastMessage } from '@/components/ui/Toast';
+import AuthGuard from '@/components/auth/AuthGuard';
 import { FolderPlus, RefreshCw } from 'lucide-react';
 
 export default function CategoryManagementPage() {
@@ -94,65 +95,65 @@ export default function CategoryManagementPage() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="space-y-6"
-    >
+    <AuthGuard>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="space-y-6"
+      >
+        <Toast toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
 
-      <Toast toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
+        {/* Category Create/Edit Modal */}
+        <CategoryFormModal
+          isOpen={isFormOpen}
+          category={editingCategory}
+          onSubmit={handleSaveCategory}
+          onClose={() => setIsFormOpen(false)}
+          isSubmitting={isSubmitting}
+        />
 
-      {/* Category Create/Edit Modal */}
-      <CategoryFormModal
-        isOpen={isFormOpen}
-        category={editingCategory}
-        onSubmit={handleSaveCategory}
-        onClose={() => setIsFormOpen(false)}
-        isSubmitting={isSubmitting}
-      />
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={Boolean(deletingCategory)}
+          title="Delete Category"
+          message={`Are you sure you want to delete category "${deletingCategory?.name}"? Deletion will fail if any expenses are currently linked to this category.`}
+          confirmLabel="Delete"
+          onConfirm={handleDeleteCategory}
+          onCancel={() => setDeletingCategory(null)}
+        />
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={Boolean(deletingCategory)}
-        title="Delete Category"
-        message={`Are you sure you want to delete category "${deletingCategory?.name}"? Deletion will fail if any expenses are currently linked to this category.`}
-        confirmLabel="Delete"
-        onConfirm={handleDeleteCategory}
-        onCancel={() => setDeletingCategory(null)}
-      />
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-100">Category Management</h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            Create, update, and manage dynamic categories for expense tracking
-          </p>
-        </div>
-        <button onClick={handleOpenCreateModal} className="btn-primary text-sm">
-          <FolderPlus className="w-4 h-4" /> Add New Category
-        </button>
-      </div>
-
-      {/* Content */}
-      {loading ? (
-        <CardSkeleton />
-      ) : error ? (
-        <div className="glass-card p-6 text-center text-rose-300 text-sm flex flex-col items-center gap-3">
-          <span>{error}</span>
-          <button onClick={loadCategories} className="btn-secondary text-xs">
-            <RefreshCw className="w-3.5 h-3.5" /> Retry
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-100">Category Management</h1>
+            <p className="text-sm text-slate-400 mt-0.5">
+              Create, update, and manage dynamic categories for expense tracking
+            </p>
+          </div>
+          <button onClick={handleOpenCreateModal} className="btn-primary text-sm">
+            <FolderPlus className="w-4 h-4" /> Add New Category
           </button>
         </div>
-      ) : (
-        <CategoryList
-          categories={categories}
-          onEdit={handleOpenEditModal}
-          onDelete={(cat) => setDeletingCategory(cat)}
-        />
-      )}
 
-    </motion.div>
+        {/* Content */}
+        {loading ? (
+          <CardSkeleton />
+        ) : error ? (
+          <div className="glass-card p-6 text-center text-rose-300 text-sm flex flex-col items-center gap-3">
+            <span>{error}</span>
+            <button onClick={loadCategories} className="btn-secondary text-xs">
+              <RefreshCw className="w-3.5 h-3.5" /> Retry
+            </button>
+          </div>
+        ) : (
+          <CategoryList
+            categories={categories}
+            onEdit={handleOpenEditModal}
+            onDelete={(cat) => setDeletingCategory(cat)}
+          />
+        )}
+      </motion.div>
+    </AuthGuard>
   );
 }

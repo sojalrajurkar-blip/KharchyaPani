@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Navbar } from '@/components/ui/Navbar';
 import { PwaInstallPrompt } from '@/components/ui/PwaInstallPrompt';
+import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata: Metadata = {
   title: 'KharchyaPani — Personal Expense Tracker',
@@ -46,16 +47,18 @@ export default function RootLayout({
           <div className="absolute inset-0 bg-[radial-gradient(rgba(56,189,248,0.08)_1px,transparent_1px)] [background-size:26px_26px] opacity-80" />
         </div>
 
-        <div className="min-h-screen flex flex-col relative z-0">
-          <Navbar />
-          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            {children}
-          </main>
-          <footer className="py-6 border-t border-slate-800/80 text-center text-xs text-slate-500">
-            <p>KharchyaPani Personal Expense Tracker &copy; {new Date().getFullYear()}</p>
-          </footer>
-          <PwaInstallPrompt />
-        </div>
+        <AuthProvider>
+          <div className="min-h-screen flex flex-col relative z-0">
+            <Navbar />
+            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              {children}
+            </main>
+            <footer className="py-6 border-t border-slate-800/80 text-center text-xs text-slate-500">
+              <p>KharchyaPani Personal Expense Tracker &copy; {new Date().getFullYear()}</p>
+            </footer>
+            <PwaInstallPrompt />
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

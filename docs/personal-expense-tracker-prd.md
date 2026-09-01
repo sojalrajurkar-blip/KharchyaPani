@@ -1,441 +1,243 @@
 # Product Requirements Document (PRD)
-## Personal Expense Tracker
+## Personal Expense Tracker (KharchyaPani)
 
 ---
 
 ## 1. Product Overview
 
-Personal Expense Tracker is a simple, web-based application that allows a user to record, manage, and understand their personal expenses.
+**KharchyaPani** (Personal Expense Tracker) is a modern, responsive, web-based application that allows individuals to record, manage, and understand their personal expenses and budgets with bank-grade security and complete privacy.
 
-The first version (MVP) focuses only on basic expense tracking — adding, viewing, editing, and deleting expenses, along with fully dynamic (user-managed) categories.
-
-The application must be fully dynamic and database-driven. No business data — categories, expenses, totals, or summaries — should ever be hardcoded into the application.
-
-The goal is a clean, simple MVP that can later be extended with additional financial management features (budgeting, reports, income tracking, etc.) without requiring a rebuild of the core.
-
-**Note:** This PRD intentionally makes no technology decisions. No frontend, backend, database, framework, or hosting/deployment technology is specified or assumed anywhere in this document. Technology choices will be made separately.
+The application is fully dynamic, database-driven, and multi-tenant at the user level:
+- Every user registers and logs in with their own account (or signs in with Google).
+- Every user's financial data (expenses, custom categories, daily/monthly budgets, and dashboard statistics) is completely isolated to their private account.
+- Zero business data — categories, expenses, totals, or summaries — is ever hardcoded into the application.
+- There is **no RBAC/admin system**: each authenticated user has complete, autonomous control over their own financial records and zero visibility or access to any other user's records.
 
 ---
 
 ## 2. Problem Statement
 
-Users often spend money across many different activities but do not maintain a proper record of where their money is going. Without a simple way to log and review spending, it's difficult to answer a basic question: *"How much have I spent, and on what?"*
+Individuals often spend money across various daily activities (food, travel, bills, shopping) without maintaining a structured, accurate log. Without an intuitive, secure, and accessible tool, it is difficult to answer critical questions:
+- *"How much money have I spent today and this month?"*
+- *"Am I staying within my daily or monthly budget?"*
+- *"Which categories consume the bulk of my spending?"*
+- *"Can I access my private financial records securely across my phone and laptop?"*
 
-Personal Expense Tracker solves this by giving the user a simple, always-up-to-date way to record expenses and see their total spending.
+**KharchyaPani** solves this by providing a frictionless, multi-device, PWA-enabled personal expense tracking system with robust authentication, intuitive budgeting, and real-time visual summaries.
 
 ---
 
 ## 3. Product Goal
 
-The MVP should allow the user to:
+The application allows authenticated users to:
 
-- Add an expense
-- View expenses
-- Edit an expense
-- Delete an expense
-- Create and manage expense categories
-- Filter expenses
-- Calculate total expenses
-- View recent expenses
+- Securely register and sign in via Email/Password or **Sign in with Google** (OAuth 2.0 / OpenID Connect).
+- Manage account security (Forgot Password, Reset Password, Change Password, and Multi-device Logout).
+- Add, view, edit, and delete personal expenses with payment modes and quick increment pills.
+- Create and manage personalized expense categories with automatic inline integration.
+- Set and track Daily and Monthly spending budgets with live progress bars.
+- Filter, search, and review historical expenses.
+- View interactive dashboard metrics, category breakdown pie charts, and recent spending trends.
+- Access their account seamlessly as an installable Progressive Web App (PWA).
 
-All data must be stored persistently and loaded dynamically — nothing is hardcoded.
+All data is persistently stored and dynamically scoped to the authenticated user.
 
 ---
 
 ## 4. Target User
 
-The initial target user is a single individual who wants to track their own personal expenses.
+The target user is any individual who wants a secure, private, and fast way to track and manage their personal expenses and budgets.
 
-Multi-user functionality is **not** required in the first MVP.
+- **Account Model**: Individual private accounts.
+- **Role Model**: Zero RBAC or administrative hierarchy. Every user is the sole owner and administrator of their own financial data.
 
 ---
 
 ## 5. Product Scope
 
-**In Scope (MVP):**
-- Dashboard
-- Add Expense
-- Edit Expense
-- Delete Expense
-- Expense History
-- Dynamic Category Management
-- Total Expense calculation
-- Basic Filtering
-- Persistent Data Storage
+### In Scope (Current Release)
+- **Authentication & Security**:
+  - Sign Up / Registration (Email + Password)
+  - Sign In / Login (Email + Password)
+  - Sign In with Google (OAuth 2.0 / OpenID Connect)
+  - Secure Logout (Current session and All devices/sessions)
+  - Forgot Password & Reset Password workflows
+  - Change Password (for authenticated users)
+  - JWT-based authentication with short-lived Access Tokens and HttpOnly Refresh Token rotation
+- **User Data Isolation**:
+  - Strict multi-tenancy: every expense, category, budget, and summary is strictly scoped to the authenticated user.
+  - Zero cross-user data leakage.
+- **Expense Management**:
+  - Add Expense with amount, category, date, payment mode (Cash, UPI, Card, Net Banking), and optional note
+  - Edit & Delete personal expenses
+  - Filter by category, payment mode, date, and keyword search
+- **Dynamic Category Management**:
+  - Create, view, edit, and delete personal categories
+  - Starter default categories seeded for new user accounts
+  - Inline category creation and renaming directly within expense forms
+  - Category deletion safeguards (prevent deleting categories with linked expenses)
+- **Budget Management**:
+  - Daily and Monthly budget limits
+  - Real-time spend vs. limit calculations and visual progress indicators
+- **Dashboard & Analytics**:
+  - Today, Monthly, and All-Time total spending aggregates
+  - Interactive Recharts Category Breakdown Pie Chart
+  - Recent expenses table and quick action shortcuts
+- **Progressive Web App (PWA)**:
+  - Installable mobile/desktop app with offline asset caching and custom install prompt
 
-**Out of Scope (Version 1):**
-- Login / Register
-- Authentication
-- AI features
-- Payment gateway
-- Notifications
-- Real-time features
-- Complex analytics
-- Advanced budgeting
-- Multi-user functionality
-- Microservices
-- Unnecessary third-party integrations
-
-The first version is kept intentionally simple.
+### Out of Scope
+- Role-Based Access Control (RBAC) or Admin dashboards (explicitly not needed)
+- Multi-user joint/shared family wallets or corporate expense approval hierarchies
+- Payment gateway integrations or bank account scraping
+- AI spending forecasting / automated receipt OCR (planned for future phases)
+- Complex multi-currency conversion (INR standard for current scope)
 
 ---
 
-## 6. MVP Features
+## 6. Product Features
 
-### 6.1 Expense Management
-The user can create an expense with:
-- Amount
-- Category
-- Date
-- Note/Description
+### 6.1 Authentication & Account Management
+- **Sign Up**: Users can register with their Full Name, Email, and a secure Password.
+- **Sign In**: Fast login using verified credentials returning short-lived JWT Access Tokens and setting HttpOnly Refresh Tokens.
+- **Google Sign-In**: 1-click authentication using Google OAuth 2.0. Automatically links accounts or provisions a new user profile with verified email.
+- **Password Recovery**: Self-service Forgot Password flow sending a secure, time-limited reset token, enabling password updates without exposing account details.
+- **Session Control**: Users can log out of the current device or invalidate all active sessions across all devices simultaneously.
 
-**Example:**
-```
-Amount: ₹250
-Category: Food
-Date: 26 August 2026
-Note: Lunch
-```
+### 6.2 Strict User Data Isolation
+- Authorization is strictly enforced on the backend from verified JWT identities.
+- The system never accepts or trusts a client-supplied `user_id`.
+- User A can never read, modify, or delete records belonging to User B.
 
-The user can also view, edit, and delete an expense.
+### 6.3 Expense Management
+- Users can log an expense with:
+  - Amount (> ₹0, supporting 2 decimal places)
+  - Category (dynamic selection from user's categories)
+  - Expense Date (with quick-select pills: Today, Yesterday, 2 Days Ago)
+  - Payment Mode (`Cash`, `UPI`, `Card`, `Net Banking`)
+  - Note / Description (optional, up to 500 characters)
+- Full CRUD operations with instant UI feedback and zero data loss on modal interactions.
 
-### 6.2 Dynamic Category Management
-Categories are **not** hardcoded — they are stored as dynamic records that the user fully manages.
+### 6.4 Category Management
+- Categories are completely user-owned and dynamic.
+- Users can create, rename, and delete custom categories.
+- New categories immediately appear in forms and filter dropdowns without application reloads or code changes.
 
-The user can:
-- Create a category
-- View categories
-- Edit a category
-- Delete a category
+### 6.5 Daily & Monthly Budgeting
+- Users can configure daily and monthly spending limits.
+- The system calculates active spend against calendar-month boundaries to prevent leakage across billing cycles.
+- Visual alerts and color-coded progress bars warn when approaching or exceeding limits.
 
-**Example starter categories:** Food, Travel, Shopping, Bills, Health, Entertainment, Other — these are examples only. The system must never assume these are the only categories.
-
-If the user creates a new category (e.g. "College" or "Mobile Recharge"), it must automatically become available when adding or editing an expense — with **no source-code change required**.
-
-### 6.3 Dashboard
-Dynamically displays:
-- Total Expense
-- Number of Expenses
-- Recent Expenses
-- Category-wise expense summary
-
-### 6.4 Expense History
-A list/table of all recorded expenses, with Edit and Delete actions.
-
-### 6.5 Filtering
-- Filter by category
-- Filter by date
-- Filter by date range
-
-### 6.6 Total Expense
-Automatically recalculated whenever an expense is added, updated, or deleted.
+### 6.6 Interactive Dashboard & History
+- Real-time financial summary cards (Today's Spend, This Month's Spend, Total Expenses).
+- Interactive Category Breakdown Pie Chart with animated tooltips.
+- Multi-filter Expense History list supporting keyword search, category filtering, payment mode filtering, and date range filters.
 
 ---
 
 ## 7. Functional Requirements
 
 | ID | Requirement | Priority |
-|----|-------------|----------|
-| FR-1 | User can add a new expense (amount, category, date, note) | P0 |
-| FR-2 | User can view a list of all expenses | P0 |
-| FR-3 | User can edit an existing expense | P0 |
-| FR-4 | User can delete an expense (with confirmation) | P0 |
-| FR-5 | User can create a new category | P0 |
-| FR-6 | User can view all categories | P0 |
-| FR-7 | User can edit a category | P0 |
-| FR-8 | User can delete a category | P0 |
-| FR-9 | New categories automatically appear in the Add/Edit Expense form | P0 |
-| FR-10 | Dashboard shows total expense, expense count, recent expenses, and category-wise summary | P0 |
-| FR-11 | User can filter expenses by category | P0 |
-| FR-12 | User can filter expenses by date | P0 |
-| FR-13 | User can filter expenses by date range | P0 |
-| FR-14 | Total expense recalculates automatically after add/edit/delete | P0 |
+|---|---|---|
+| **FR-1** | User can register a new account with Name, Email, and Password | P0 |
+| **FR-2** | User can log in with valid Email and Password to receive JWT credentials | P0 |
+| **FR-3** | User can authenticate seamlessly via Google OAuth 2.0 / OpenID Connect | P0 |
+| **FR-4** | User can log out securely (clearing session cookies and revoking refresh tokens) | P0 |
+| **FR-5** | User can log out from all active devices/sessions simultaneously | P0 |
+| **FR-6** | User can initiate password reset via email and complete password update | P0 |
+| **FR-7** | Authenticated user can change their password using their current password | P0 |
+| **FR-8** | System automatically rotates Refresh Tokens and refreshes expired Access Tokens | P0 |
+| **FR-9** | All API operations strictly enforce user data ownership derived from JWT tokens | P0 |
+| **FR-10** | User can add, view, edit, and delete their own expenses | P0 |
+| **FR-11** | User can select payment mode (Cash, UPI, Card, Net Banking) for each expense | P0 |
+| **FR-12** | User can create, view, edit, and delete their own categories | P0 |
+| **FR-13** | System blocks category deletion if linked expenses exist (with 409 Conflict) | P0 |
+| **FR-14** | User can set and monitor Daily and Monthly budget limits | P0 |
+| **FR-15** | Dashboard displays live user spending totals, category pie chart, and budget progress | P0 |
+| **FR-16** | User can filter expenses by category, payment mode, date, and search notes | P0 |
+| **FR-17** | Application functions as an installable Progressive Web App (PWA) | P0 |
 
 ---
 
-## 8. Dynamic Data Requirements
+## 8. Data Model & Entity Overview
 
-The application must **not** hardcode:
-- Categories
-- Expense records
-- Total expenses
-- Expense counts
-- Dashboard statistics
-- Dropdown options
-- Category summaries
-- User-created data
-- Business calculations
+### User
+- `id`: Primary key (Integer or UUID)
+- `email`: Required, unique, normalized lowercase
+- `hashed_password`: Required for email/password users; nullable for pure Google OAuth users
+- `full_name`: Required
+- `is_active`: Boolean flag
+- `is_verified`: Boolean flag
+- `google_id`: Optional unique identifier for linked Google accounts
+- `created_at` / `updated_at`: Timestamps
 
-All application data must be loaded, stored, updated, and deleted dynamically.
+### RefreshToken
+- `id`: Primary key
+- `user_id`: Foreign key → User (Cascade Delete)
+- `token_hash`: SHA-256 hash of the issued refresh token (Plain tokens are never stored)
+- `expires_at`: Expiration timestamp
+- `revoked_at`: Revocation timestamp (null if active)
+- `user_agent`: Optional client metadata
+- `ip_address`: Optional client IP
+- `created_at`: Timestamp
 
-Initial sample categories may be inserted during first-time setup, but after creation they must behave exactly like any normal user-created category (fully editable and deletable).
+### Category
+- `id`: Primary key
+- `user_id`: Foreign key → User
+- `name`: Required, 1–100 characters (Unique per user)
+- `created_at`: Timestamp
 
----
+### Expense
+- `id`: Primary key
+- `user_id`: Foreign key → User
+- `amount`: Required, numeric (> 0, 2 decimal places)
+- `category_id`: Required, foreign key → Category
+- `expense_date`: Required, valid date
+- `payment_mode`: Required (`Cash`, `UPI`, `Card`, `Net Banking`)
+- `note`: Optional, up to 500 characters
+- `created_at` / `updated_at`: Timestamps
 
-## 9. User Stories
-
-- As a user, I want to add an expense so that I can record my spending.
-- As a user, I want to edit an expense so that I can correct mistakes.
-- As a user, I want to delete an expense so that incorrect records can be removed.
-- As a user, I want to create categories so that I can organize my spending.
-- As a user, I want to filter expenses so that I can find specific records.
-- As a user, I want to see my total expenses so that I know how much I have spent.
-- As a user, I want to see recent expenses so that I can quickly understand my latest spending.
-
----
-
-## 10. User Flows
-
-### 10.1 Add Expense (Primary Flow)
-```
-Open Application
-→ Dashboard
-→ Add Expense
-→ Select/Create Category
-→ Enter Amount
-→ Select Date
-→ Add Optional Note
-→ Save
-→ Expense appears in History
-→ Dashboard statistics update
-```
-
-### 10.2 Edit Expense
-```
-Expense History → Select Expense → Edit → Update Fields → Save → History and Dashboard update
-```
-
-### 10.3 Delete Expense
-```
-Expense History → Select Expense → Delete → Confirm → Expense removed → History and Dashboard update
-```
-
-### 10.4 Create Category
-```
-Category Management → Add New Category → Enter Name → Save → Category available in Expense form
-```
-
-### 10.5 Edit Category
-```
-Category Management → Select Category → Edit → Update Name → Save
-```
-
-### 10.6 Delete Category
-```
-Category Management → Select Category → Delete → Confirm → Category removed
-```
-
-### 10.7 Filter Expenses
-```
-Expense History → Apply Filter (Category / Date / Date Range) → List updates dynamically
-```
+### Budget
+- `id`: Primary key
+- `user_id`: Foreign key → User
+- `period_type`: Required (`daily` | `monthly`)
+- `category_id`: Optional foreign key → Category
+- `amount_limit`: Required, numeric (> 0)
+- `created_at` / `updated_at`: Timestamps
 
 ---
 
-## 11. Application Pages
+## 9. Security & Privacy Requirements
 
-1. **Dashboard** — total expense, expense count, recent expenses, category-wise summary
-2. **Add Expense** — form with amount, category (dynamic dropdown), date, note
-3. **Edit Expense** — same form, pre-filled with existing values
-4. **Expense History** — list/table of all expenses with filter controls and Edit/Delete actions
-5. **Category Management** — create, view, edit, delete categories
-
-The Add/Edit Expense screen must load available categories dynamically at runtime. The category list must never be permanently embedded in the UI.
-
----
-
-## 12. Data Model
-
-**Category**
-| Field | Notes |
-|-------|-------|
-| id | Primary key |
-| name | Required, unique |
-| created_at | Timestamp |
-
-**Expense**
-| Field | Notes |
-|-------|-------|
-| id | Primary key |
-| amount | Required, numeric, > 0 |
-| category_id | Required, foreign key → Category |
-| expense_date | Required, valid date |
-| note | Optional, character limit |
-| created_at | Timestamp |
-| updated_at | Timestamp |
+1. **Zero Plaintext Passwords**: Passwords hashed using standard BCrypt or Argon2 algorithms with high cost factor.
+2. **Token Security**:
+   - Short-lived Access Tokens (10–15 minutes) kept in client application memory.
+   - Long-lived Refresh Tokens (7–30 days) stored exclusively in `HttpOnly`, `Secure`, `SameSite=Lax` cookies.
+   - Server-side Refresh Token Rotation: every refresh invalidates the old token and issues a new pair.
+   - Immediate revocation of all user tokens if token reuse is detected.
+3. **Multi-Tenancy & Authorization**:
+   - Every protected API endpoint inspects the cryptographically signed JWT.
+   - Database queries strictly filter by `user_id == current_user.id`.
+   - Accessing another user's resource returns `404 Not Found` (to avoid resource enumeration) or `403 Forbidden`.
+4. **Rate Limiting**:
+   - Login, Registration, and Password Reset endpoints protected against brute-force attacks via IP-based and user-based rate limits.
+5. **No Secrets in Frontend or Code**:
+   - JWT secret keys, Google OAuth client secrets, and database credentials remain strictly in server environment variables.
 
 ---
 
-## 13. Entity Relationships
+## 10. Application Pages & Navigation
 
-**One Category → Many Expenses**
-
-- An Expense must reference a valid, existing Category (`category_id` is a required foreign key).
-- A Category name must be unique.
-- Deleting a Category that still has linked Expenses must be handled explicitly (e.g. block deletion, or require reassignment) — exact behavior to be confirmed during design.
-
----
-
-## 14. Application Operations
-
-**Category**
-- Create
-- Read
-- Update
-- Delete
-
-**Expense**
-- Create
-- Read
-- Update
-- Delete
-
-**Filtering**
-- By category
-- By date
-- By date range
-
-**Dashboard**
-- Total expense
-- Expense count
-- Recent expenses
-- Category-wise summary
-
-*(These operations are defined independently of any programming language or framework.)*
+1. **`/login`** — Modern sign-in page with Email/Password and Google 1-tap sign-in.
+2. **`/register`** — User registration page with password strength validation and Google sign-in.
+3. **`/forgot-password`** & **`/reset-password`** — Password recovery and reset interface.
+4. **`/` (Dashboard)** — Authenticated home overview with stats, budget card, pie chart, and recent items.
+5. **`/expenses`** — Full expense history with real-time multi-filter bar and quick actions.
+6. **`/expenses/new` & `/expenses/[id]/edit`** — Expense creation/editing form with quick pills and inline category creation.
+7. **`/categories`** — Category management screen.
+8. **`/budgets`** — Daily and monthly budget limit configuration.
 
 ---
 
-## 15. Validation Rules
-
-**Amount**
-- Required
-- Must be greater than 0
-
-**Category**
-- Required
-- Must reference an existing category
-
-**Date**
-- Required
-- Must be a valid date
-
-**Note**
-- Optional
-- Reasonable character limit
-
----
-
-## 16. Error Handling
-
-| Error Scenario | Expected Behavior |
-|---|---|
-| Invalid amount | Clear message; entry not saved |
-| Missing amount | Clear message; entry not saved |
-| Missing category | Clear message; entry not saved |
-| Invalid date | Clear message; entry not saved |
-| Category not found | Clear message; operation blocked |
-| Expense not found | Clear message; operation blocked |
-| Duplicate category | Clear message; category not created |
-| Invalid request | Clear, generic error message |
-| Failed data operation | Clear message; user can retry |
-
-Each error must provide a clear, understandable message to the user.
-
----
-
-## 17. Non-Functional Requirements
-
-The application should be:
-- Simple
-- Dynamic
-- Maintainable
-- Responsive
-- User-friendly
-- Reliable
-- Easy to understand
-- Easy to extend
-- Free from unnecessary hardcoded business data
-
----
-
-## 18. Acceptance Criteria
-
-**Add Expense**
-- User enters a valid amount.
-- User selects an existing category.
-- User selects a valid date.
-- User can optionally enter a note.
-- Expense is successfully stored.
-- Expense appears in the history.
-- Dashboard totals update.
-
-**Dynamic Category**
-- User creates a category.
-- Category is stored successfully.
-- Category appears automatically in the expense form.
-- No source-code change is required.
-
-**Delete Expense**
-- User selects delete.
-- Confirmation is displayed.
-- Expense is removed.
-- Expense history updates.
-- Dashboard totals update.
-
-**Edit Expense**
-- User updates one or more fields.
-- Validation rules are re-applied.
-- Updated data is saved.
-- Expense history and dashboard reflect the change.
-
-**Delete Category**
-- User selects delete on a category.
-- Confirmation is displayed.
-- If linked expenses exist, appropriate handling is triggered (block or reassign).
-- Category list updates.
-
-**Filtering**
-- User applies a category, date, or date-range filter.
-- Expense history updates to match the selected filter.
-- Filters can be combined.
-
----
-
-## 19. MVP vs Future Enhancements
-
-**In MVP:** Add/View/Edit/Delete expense, dynamic category management, dashboard summary, basic filtering, persistent storage.
-
-**Future Enhancements (not in MVP):**
-- Income tracking
-- Balance tracking
-- Monthly budgets
-- Savings goals
-- Advanced charts
-- Monthly/weekly reports
-- PDF/Excel export
-- Authentication
-- Multiple users
-- Recurring expenses
-- AI spending insights
-- Notifications
-- Mobile application
-
----
-
-## 20. High-Level Project Structure
-
-A logical structure, independent of any specific technology:
-
-- **User Interface Layer** — screens/pages for Dashboard, Add/Edit Expense, Expense History, Category Management
-- **Application/Business Logic Layer** — handles expense and category operations, filtering logic, total calculation
-- **Data Management Layer** — persistent storage and retrieval of Category and Expense records
-- **Validation Layer** — enforces amount, category, date, and note rules before data is saved
-- **Error Handling Layer** — captures and surfaces clear error messages across all operations
-- **Configuration** — application-level settings, kept separate from business data
-
-*(No specific technologies, programming languages, frameworks, libraries, databases, or hosting/deployment platforms are referenced. Technology decisions will be made separately.)*
-
----
-
-*Document Version: 1.0*
-*Status: Draft — MVP Scope*
+*Document Version: 2.0*  
+*Status: Approved — Multi-User Authentication & Data Isolation*

@@ -9,6 +9,7 @@ import { ExpenseForm } from '@/components/expenses/ExpenseForm';
 import { CardSkeleton } from '@/components/ui/LoadingSkeleton';
 import { Toast, ToastMessage } from '@/components/ui/Toast';
 import { AlertCircle } from 'lucide-react';
+import AuthGuard from '@/components/auth/AuthGuard';
 
 export default function EditExpensePage() {
   const router = useRouter();
@@ -64,43 +65,39 @@ export default function EditExpensePage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="max-w-2xl mx-auto py-8">
-        <CardSkeleton />
-      </div>
-    );
-  }
-
-  if (error || !expense) {
-    return (
-      <div className="glass-card p-8 text-center max-w-lg mx-auto mt-10">
-        <div className="p-3 rounded-full bg-rose-500/10 text-rose-400 w-fit mx-auto mb-3">
-          <AlertCircle className="w-8 h-8" />
-        </div>
-        <h3 className="text-xl font-bold text-slate-100">Expense Not Found</h3>
-        <p className="text-sm text-slate-400 mt-2 mb-6">{error || 'The requested expense record does not exist.'}</p>
-        <button onClick={() => router.push('/expenses')} className="btn-primary text-sm">
-          Return to Expense History
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="py-4"
-    >
-      <Toast toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
-      <ExpenseForm
-        title={`Edit Expense (#${expense.id})`}
-        initialData={expense}
-        onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
-      />
-    </motion.div>
+    <AuthGuard>
+      {loading ? (
+        <div className="max-w-2xl mx-auto py-8">
+          <CardSkeleton />
+        </div>
+      ) : error || !expense ? (
+        <div className="glass-card p-8 text-center max-w-lg mx-auto mt-10">
+          <div className="p-3 rounded-full bg-rose-500/10 text-rose-400 w-fit mx-auto mb-3">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-100">Expense Not Found</h3>
+          <p className="text-sm text-slate-400 mt-2 mb-6">{error || 'The requested expense record does not exist.'}</p>
+          <button onClick={() => router.push('/expenses')} className="btn-primary text-sm">
+            Return to Expense History
+          </button>
+        </div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="py-4"
+        >
+          <Toast toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
+          <ExpenseForm
+            title={`Edit Expense (#${expense.id})`}
+            initialData={expense}
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+          />
+        </motion.div>
+      )}
+    </AuthGuard>
   );
 }

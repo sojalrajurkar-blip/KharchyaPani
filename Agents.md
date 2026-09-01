@@ -56,13 +56,13 @@
 
 26. Keep CORS environment-driven and restricted to configured origins. Never solve a production network problem by blindly enabling unrestricted CORS.
 
-27. Keep authentication, login/register, AI features, payment gateways, notifications, real-time features, advanced analytics, advanced budgeting, multi-user functionality, microservices, and unnecessary third-party integrations out of the MVP unless the requirements are explicitly changed.
+27. Authentication and Strict User Data Isolation must follow PRD/SRS v2.0: Short-lived Access Token in memory, Long-lived Refresh Token in HttpOnly cookie with SHA-256 database hashing and single-use rotation, PBKDF2 password hashing (100k rounds), Google OAuth 2.0 / OpenID Connect ID token verification, zero RBAC/admin system, and 100% tenant scoping on user_id.
 
-28. Do not implement future enhancements such as income tracking, budgets, savings goals, advanced reports, PDF/Excel export, recurring expenses, AI insights, notifications, or mobile applications unless explicitly requested as a new scope.
+28. Future out-of-scope enhancements such as income tracking, recurring expenses, savings goals, advanced PDF/Excel export, AI insights, and native mobile apps remain out of current scope unless explicitly requested as a new milestone.
 
-29. Keep the UI simple, dynamic, responsive, maintainable, reliable, and user-friendly as required by the PRD.
+29. Keep the UI sleek, modern, dynamic, responsive, maintainable, reliable, and user-friendly following the Titanium & Ice Blue Modern Dark theme.
 
-30. The application must provide the required pages: Dashboard, Add Expense, Edit Expense, Expense History, and Category Management.
+30. The application must provide all required pages: Dashboard, Add Expense, Edit Expense, Expense History, Category Management, Budgets Management, Login, Register, Forgot Password, and Reset Password.
 
 31. The Add/Edit Expense category dropdown must load categories dynamically from the backend. Creating a category must make it available without any source-code change.
 

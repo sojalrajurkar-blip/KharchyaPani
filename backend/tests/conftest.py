@@ -7,7 +7,10 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.db.base import Base
 from app.db.session import get_db
-from app.db.seed import seed_categories
+from app.models.user import User
+from app.schemas.auth import UserRegister
+from app.services.auth_service import AuthService
+from app.core.security import create_access_token
 
 TEST_SQLALCHEMY_DATABASE_URL = "sqlite:///./test_kharchyapani.db"
 
@@ -31,11 +34,6 @@ app.dependency_overrides[get_db] = override_get_db
 def setup_test_db():
     Base.metadata.drop_all(bind=test_engine)
     Base.metadata.create_all(bind=test_engine)
-    db = TestingSessionLocal()
-    try:
-        seed_categories(db)
-    finally:
-        db.close()
     yield
     Base.metadata.drop_all(bind=test_engine)
     if os.path.exists("./test_kharchyapani.db"):
@@ -56,3 +54,33 @@ def db_session():
         yield session
     finally:
         session.close()
+
+@pytest.fixture(scope="function")
+def auth_user(db_session):
+    user = AuthService.get_user_by_email(db_session, "test@example.com")
+    if not user:
+        user = AuthService.register_user(
+            db_session,
+            UserRegister(email="test@example.com", password="Password123!", full_name="Test User")
+        )
+    return user
+
+@pytest.fixture(scope="function")
+def auth_headers(auth_user):
+    token = create_access_token({"sub": str(auth_user.id), "email": auth_user.email})
+    return {"Authorization": f"Bearer {token}"}
+
+@pytest.fixture(scope="function")
+def second_user(db_session):
+    user = AuthService.get_user_by_email(db_session, "user2@example.com")
+    if not user:
+        user = AuthService.register_user(
+            db_session,
+            UserRegister(email="user2@example.com", password="Password123!", full_name="User Two")
+        )
+    return user
+
+@pytest.fixture(scope="function")
+def second_auth_headers(second_user):
+    token = create_access_token({"sub": str(second_user.id), "email": second_user.email})
+    return {"Authorization": f"Bearer {token}"}

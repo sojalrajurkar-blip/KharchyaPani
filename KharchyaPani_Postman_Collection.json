@@ -1,10 +1,182 @@
 {
   "info": {
-    "name": "KharchyaPani API Collection",
-    "description": "Complete Postman API collection for testing KharchyaPani FastAPI Backend",
+    "name": "KharchyaPani API Collection (v2.0 with Auth)",
+    "description": "Complete Postman API collection for testing KharchyaPani FastAPI Backend with JWT Auth and Multi-Tenant Isolation",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\",\n  \"full_name\": \"Demo User\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/auth/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Google Sign-In",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"credential\": \"<GOOGLE_ID_TOKEN>\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/auth/google",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "auth", "google"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Access Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/auth/refresh",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "http://localhost:8000/api/auth/me",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"Password123!\",\n  \"new_password\": \"NewPassword456!\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/auth/change-password",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "auth", "change-password"]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/auth/forgot-password",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "auth", "forgot-password"]
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<RESET_TOKEN>\",\n  \"new_password\": \"NewSecret123!\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/api/auth/reset-password",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "auth", "reset-password"]
+            }
+          }
+        },
+        {
+          "name": "Logout Session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/auth/logout",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Logout All Devices",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "http://localhost:8000/api/auth/logout-all",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "auth", "logout-all"]
+            }
+          }
+        }
+      ]
+    },
     {
       "name": "Health Check",
       "request": {
@@ -37,7 +209,7 @@
       "name": "Dashboard Summary",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
         "url": {
           "raw": "http://localhost:8000/api/dashboard",
           "protocol": "http",
@@ -54,7 +226,7 @@
           "name": "Get All Categories",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
             "url": {
               "raw": "http://localhost:8000/api/categories",
               "protocol": "http",
@@ -65,28 +237,12 @@
           }
         },
         {
-          "name": "Get Category by ID",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8000/api/categories/1",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8000",
-              "path": ["api", "categories", "1"]
-            }
-          }
-        },
-        {
           "name": "Create Category",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -100,43 +256,6 @@
               "path": ["api", "categories"]
             }
           }
-        },
-        {
-          "name": "Update Category",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Monthly Subscriptions\"\n}"
-            },
-            "url": {
-              "raw": "http://localhost:8000/api/categories/1",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8000",
-              "path": ["api", "categories", "1"]
-            }
-          }
-        },
-        {
-          "name": "Delete Category",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8000/api/categories/1",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8000",
-              "path": ["api", "categories", "1"]
-            }
-          }
         }
       ]
     },
@@ -144,53 +263,10 @@
       "name": "Expenses",
       "item": [
         {
-          "name": "Get All Expenses (With Filters)",
+          "name": "Get All Expenses",
           "request": {
             "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8000/api/expenses?payment_mode=UPI",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8000",
-              "path": ["api", "expenses"],
-              "query": [
-                {
-                  "key": "payment_mode",
-                  "value": "UPI"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Expense by ID",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8000/api/expenses/1",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8000",
-              "path": ["api", "expenses", "1"]
-            }
-          }
-        },
-        {
-          "name": "Create Expense",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"amount\": 250.50,\n  \"category_id\": 1,\n  \"expense_date\": \"2026-08-27\",\n  \"payment_mode\": \"UPI\",\n  \"note\": \"Lunch with friends\"\n}"
-            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
             "url": {
               "raw": "http://localhost:8000/api/expenses",
               "protocol": "http",
@@ -201,39 +277,23 @@
           }
         },
         {
-          "name": "Update Expense",
+          "name": "Create Expense",
           "request": {
-            "method": "PUT",
+            "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": 300.00,\n  \"category_id\": 1,\n  \"expense_date\": \"2026-08-27\",\n  \"payment_mode\": \"UPI\",\n  \"note\": \"Updated lunch cost\"\n}"
+              "raw": "{\n  \"amount\": 450.00,\n  \"category_id\": 1,\n  \"expense_date\": \"2026-08-31\",\n  \"payment_mode\": \"UPI\",\n  \"note\": \"Team Lunch\"\n}"
             },
             "url": {
-              "raw": "http://localhost:8000/api/expenses/1",
+              "raw": "http://localhost:8000/api/expenses",
               "protocol": "http",
               "host": ["localhost"],
               "port": "8000",
-              "path": ["api", "expenses", "1"]
-            }
-          }
-        },
-        {
-          "name": "Delete Expense",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8000/api/expenses/1",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8000",
-              "path": ["api", "expenses", "1"]
+              "path": ["api", "expenses"]
             }
           }
         }
@@ -243,18 +303,30 @@
       "name": "Budgets",
       "item": [
         {
-          "name": "Set Daily Budget",
+          "name": "Get Budget Progress",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "http://localhost:8000/api/budgets/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "budgets", "status"]
+            }
+          }
+        },
+        {
+          "name": "Create or Update Budget Limit",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"period_type\": \"daily\",\n  \"category_id\": null,\n  \"amount_limit\": 500.00\n}"
+              "raw": "{\n  \"period_type\": \"daily\",\n  \"category_id\": null,\n  \"amount_limit\": 1500.00\n}"
             },
             "url": {
               "raw": "http://localhost:8000/api/budgets",
@@ -262,20 +334,6 @@
               "host": ["localhost"],
               "port": "8000",
               "path": ["api", "budgets"]
-            }
-          }
-        },
-        {
-          "name": "Get Budget Statuses",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8000/api/budgets/status",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "8000",
-              "path": ["api", "budgets", "status"]
             }
           }
         }

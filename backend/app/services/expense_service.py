@@ -22,13 +22,14 @@ def _format_expense_response(expense: Expense) -> ExpenseResponse:
 
 def get_expenses(
     db: Session,
+    user_id: int,
     category_id: Optional[int] = None,
     expense_date: Optional[date] = None,
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
     payment_mode: Optional[str] = None
 ) -> List[ExpenseResponse]:
-    query = db.query(Expense).join(Category)
+    query = db.query(Expense).join(Category).filter(Expense.user_id == user_id)
     
     if category_id is not None:
         query = query.filter(Expense.category_id == category_id)
@@ -44,8 +45,11 @@ def get_expenses(
     expenses = query.order_by(Expense.expense_date.desc(), Expense.id.desc()).all()
     return [_format_expense_response(e) for e in expenses]
 
-def get_expense_by_id(db: Session, expense_id: int) -> ExpenseResponse:
-    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+def get_expense_by_id(db: Session, expense_id: int, user_id: int) -> ExpenseResponse:
+    expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.user_id == user_id
+    ).first()
     if not expense:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -53,8 +57,12 @@ def get_expense_by_id(db: Session, expense_id: int) -> ExpenseResponse:
         )
     return _format_expense_response(expense)
 
-def create_expense(db: Session, expense_in: ExpenseCreate) -> ExpenseResponse:
-    category = db.query(Category).filter(Category.id == expense_in.category_id).first()
+def create_expense(db: Session, expense_in: ExpenseCreate, user_id: int) -> ExpenseResponse:
+    # Ensure referenced category belongs to the current user
+    category = db.query(Category).filter(
+        Category.id == expense_in.category_id,
+        Category.user_id == user_id
+    ).first()
     if not category:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -62,6 +70,7 @@ def create_expense(db: Session, expense_in: ExpenseCreate) -> ExpenseResponse:
         )
     
     expense = Expense(
+        user_id=user_id,
         amount=expense_in.amount,
         category_id=expense_in.category_id,
         expense_date=expense_in.expense_date,
@@ -73,15 +82,21 @@ def create_expense(db: Session, expense_in: ExpenseCreate) -> ExpenseResponse:
     db.refresh(expense)
     return _format_expense_response(expense)
 
-def update_expense(db: Session, expense_id: int, expense_in: ExpenseUpdate) -> ExpenseResponse:
-    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+def update_expense(db: Session, expense_id: int, expense_in: ExpenseUpdate, user_id: int) -> ExpenseResponse:
+    expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.user_id == user_id
+    ).first()
     if not expense:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Expense not found."
         )
     
-    category = db.query(Category).filter(Category.id == expense_in.category_id).first()
+    category = db.query(Category).filter(
+        Category.id == expense_in.category_id,
+        Category.user_id == user_id
+    ).first()
     if not category:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -97,8 +112,11 @@ def update_expense(db: Session, expense_id: int, expense_in: ExpenseUpdate) -> E
     db.refresh(expense)
     return _format_expense_response(expense)
 
-def delete_expense(db: Session, expense_id: int) -> None:
-    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+def delete_expense(db: Session, expense_id: int, user_id: int) -> None:
+    expense = db.query(Expense).filter(
+        Expense.id == expense_id,
+        Expense.user_id == user_id
+    ).first()
     if not expense:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

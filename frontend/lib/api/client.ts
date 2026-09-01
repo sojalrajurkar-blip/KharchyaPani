@@ -17,6 +17,28 @@ export class APIException extends Error {
   }
 }
 
+// In-Memory Token Store
+let inMemoryAccessToken: string | null = null;
+let isRefreshing = false;
+let refreshSubscribers: ((token: string | null) => void)[] = [];
+
+export const setAccessToken = (token: string | null) => {
+  inMemoryAccessToken = token;
+};
+
+export const getAccessToken = (): string | null => {
+  return inMemoryAccessToken;
+};
+
+const onRefreshed = (token: string | null) => {
+  refreshSubscribers.forEach((callback) => callback(token));
+  refreshSubscribers = [];
+};
+
+const addRefreshSubscriber = (callback: (token: string | null) => void) => {
+  refreshSubscribers.push(callback);
+};
+
 export async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -24,18 +46,21 @@ export async function apiClient<T>(
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
-  const defaultHeaders: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    ...(options.headers as Record<string, string>),
   };
+
+  if (inMemoryAccessToken && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${inMemoryAccessToken}`;
+  }
 
   const config: RequestInit = {
     cache: 'no-store',
+    credentials: 'include', // Ensure HttpOnly cookies (refresh token) are sent
     ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
+    headers,
   };
 
   try {
@@ -43,6 +68,74 @@ export async function apiClient<T>(
 
     if (response.status === 204) {
       return {} as T;
+    }
+
+    // Handle 401 Unauthorized by attempting automatic background token refresh
+    if (
+      response.status === 401 &&
+      !endpoint.includes('/api/auth/login') &&
+      !endpoint.includes('/api/auth/register') &&
+      !endpoint.includes('/api/auth/refresh')
+    ) {
+      if (!isRefreshing) {
+        isRefreshing = true;
+        try {
+          const refreshResp = await fetch(`${baseUrl}/api/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+          });
+
+          if (refreshResp.ok) {
+            const refreshData = await refreshResp.json();
+            const newToken = refreshData.access_token;
+            setAccessToken(newToken);
+            isRefreshing = false;
+            onRefreshed(newToken);
+
+            // Retry original request with the fresh token
+            headers['Authorization'] = `Bearer ${newToken}`;
+            const retryResponse = await fetch(url, { ...config, headers });
+            if (retryResponse.status === 204) return {} as T;
+            const retryData = await retryResponse.json().catch(() => ({}));
+            if (!retryResponse.ok) {
+              throw new APIException(retryData.detail || 'Request failed after refresh.', retryResponse.status, retryData);
+            }
+            return retryData as T;
+          } else {
+            setAccessToken(null);
+            isRefreshing = false;
+            onRefreshed(null);
+          }
+        } catch (e) {
+          setAccessToken(null);
+          isRefreshing = false;
+          onRefreshed(null);
+        }
+      } else {
+        // Queue pending requests while refresh is in flight
+        return new Promise<T>((resolve, reject) => {
+          addRefreshSubscriber(async (newToken) => {
+            if (!newToken) {
+              reject(new APIException('Session expired. Please log in again.', 401, null));
+              return;
+            }
+            try {
+              headers['Authorization'] = `Bearer ${newToken}`;
+              const retryResponse = await fetch(url, { ...config, headers });
+              if (retryResponse.status === 204) return resolve({} as T);
+              const retryData = await retryResponse.json().catch(() => ({}));
+              if (!retryResponse.ok) {
+                reject(new APIException(retryData.detail || 'Request failed.', retryResponse.status, retryData));
+              } else {
+                resolve(retryData as T);
+              }
+            } catch (err) {
+              reject(err);
+            }
+          });
+        });
+      }
     }
 
     const data = await response.json().catch(() => ({}));

@@ -4,15 +4,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.api.routes import health, contact, categories, expenses, dashboard, budgets
+from app.api.routes import health, contact, auth, categories, expenses, dashboard, budgets
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("kharchyapani")
 
 app = FastAPI(
     title="KharchyaPani API",
-    description="Personal Expense Tracker Backend API",
-    version="1.0.0"
+    description="Personal Expense Tracker Backend API with Secure JWT Authentication & Multi-Tenancy",
+    version="2.0.0"
 )
 
 # CORS configuration
@@ -31,6 +31,7 @@ app.add_middleware(
 # Include Routers
 app.include_router(health.router)
 app.include_router(contact.router)
+app.include_router(auth.router)
 app.include_router(categories.router)
 app.include_router(expenses.router)
 app.include_router(dashboard.router)

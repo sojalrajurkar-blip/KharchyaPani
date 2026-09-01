@@ -8,6 +8,7 @@ import { BudgetProgress, Category } from '@/types';
 import { Modal } from '@/components/ui/Modal';
 import { Toast, ToastMessage } from '@/components/ui/Toast';
 import { TableSkeleton } from '@/components/ui/LoadingSkeleton';
+import AuthGuard from '@/components/auth/AuthGuard';
 import { Target, Plus, Trash2, Edit3, CheckCircle2, AlertTriangle, IndianRupee, Calendar } from 'lucide-react';
 
 export default function BudgetsPage() {
@@ -95,12 +96,13 @@ export default function BudgetsPage() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="space-y-6"
-    >
+    <AuthGuard>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="space-y-6"
+      >
 
       <Toast toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
 
@@ -337,6 +339,7 @@ export default function BudgetsPage() {
         </div>
       )}
 
-    </motion.div>
+      </motion.div>
+    </AuthGuard>
   );
 }

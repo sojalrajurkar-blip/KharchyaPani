@@ -22,13 +22,16 @@ def _format_budget_response(budget: Budget) -> BudgetResponse:
         updated_at=budget.updated_at
     )
 
-def get_budgets(db: Session) -> List[BudgetResponse]:
-    budgets = db.query(Budget).outerjoin(Category).all()
+def get_budgets(db: Session, user_id: int) -> List[BudgetResponse]:
+    budgets = db.query(Budget).outerjoin(Category).filter(Budget.user_id == user_id).all()
     return [_format_budget_response(b) for b in budgets]
 
-def create_or_update_budget(db: Session, budget_in: BudgetCreate) -> BudgetResponse:
+def create_or_update_budget(db: Session, budget_in: BudgetCreate, user_id: int) -> BudgetResponse:
     if budget_in.category_id is not None:
-        cat = db.query(Category).filter(Category.id == budget_in.category_id).first()
+        cat = db.query(Category).filter(
+            Category.id == budget_in.category_id,
+            Category.user_id == user_id
+        ).first()
         if not cat:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -36,6 +39,7 @@ def create_or_update_budget(db: Session, budget_in: BudgetCreate) -> BudgetRespo
             )
 
     existing = db.query(Budget).filter(
+        Budget.user_id == user_id,
         Budget.period_type == budget_in.period_type,
         Budget.category_id == budget_in.category_id
     ).first()
@@ -47,6 +51,7 @@ def create_or_update_budget(db: Session, budget_in: BudgetCreate) -> BudgetRespo
         return _format_budget_response(existing)
     
     budget = Budget(
+        user_id=user_id,
         period_type=budget_in.period_type,
         category_id=budget_in.category_id,
         amount_limit=budget_in.amount_limit
@@ -56,8 +61,11 @@ def create_or_update_budget(db: Session, budget_in: BudgetCreate) -> BudgetRespo
     db.refresh(budget)
     return _format_budget_response(budget)
 
-def update_budget(db: Session, budget_id: int, budget_in: BudgetUpdate) -> BudgetResponse:
-    budget = db.query(Budget).filter(Budget.id == budget_id).first()
+def update_budget(db: Session, budget_id: int, budget_in: BudgetUpdate, user_id: int) -> BudgetResponse:
+    budget = db.query(Budget).filter(
+        Budget.id == budget_id,
+        Budget.user_id == user_id
+    ).first()
     if not budget:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -68,8 +76,11 @@ def update_budget(db: Session, budget_id: int, budget_in: BudgetUpdate) -> Budge
     db.refresh(budget)
     return _format_budget_response(budget)
 
-def delete_budget(db: Session, budget_id: int) -> None:
-    budget = db.query(Budget).filter(Budget.id == budget_id).first()
+def delete_budget(db: Session, budget_id: int, user_id: int) -> None:
+    budget = db.query(Budget).filter(
+        Budget.id == budget_id,
+        Budget.user_id == user_id
+    ).first()
     if not budget:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -78,8 +89,8 @@ def delete_budget(db: Session, budget_id: int) -> None:
     db.delete(budget)
     db.commit()
 
-def get_budget_statuses(db: Session) -> List[BudgetProgress]:
-    budgets = db.query(Budget).outerjoin(Category).all()
+def get_budget_statuses(db: Session, user_id: int) -> List[BudgetProgress]:
+    budgets = db.query(Budget).outerjoin(Category).filter(Budget.user_id == user_id).all()
     results = []
 
     today = date.today()
@@ -88,7 +99,9 @@ def get_budget_statuses(db: Session) -> List[BudgetProgress]:
     end_of_month = today.replace(day=last_day)
 
     for b in budgets:
-        query = db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
+        query = db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00"))).filter(
+            Expense.user_id == user_id
+        )
         if b.category_id is not None:
             query = query.filter(Expense.category_id == b.category_id)
 
@@ -117,8 +130,9 @@ def get_budget_statuses(db: Session) -> List[BudgetProgress]:
 
     return results
 
-def get_daily_budget_progress(db: Session) -> Optional[BudgetProgress]:
+def get_daily_budget_progress(db: Session, user_id: int) -> Optional[BudgetProgress]:
     daily_budget = db.query(Budget).filter(
+        Budget.user_id == user_id,
         Budget.period_type == "daily",
         Budget.category_id.is_(None)
     ).first()
@@ -128,6 +142,7 @@ def get_daily_budget_progress(db: Session) -> Optional[BudgetProgress]:
 
     today = date.today()
     spent = db.query(func.coalesce(func.sum(Expense.amount), Decimal("0.00"))).filter(
+        Expense.user_id == user_id,
         Expense.expense_date == today
     ).scalar() or Decimal("0.00")
 

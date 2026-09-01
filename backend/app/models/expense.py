@@ -6,6 +6,7 @@ class Expense(Base):
     __tablename__ = "expenses"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     amount = Column(Numeric(12, 2), nullable=False)
     category_id = Column(Integer, ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False, index=True)
     expense_date = Column(Date, nullable=False, index=True)
@@ -14,6 +15,7 @@ class Expense(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.current_timestamp())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
+    user = relationship("User", back_populates="expenses")
     category = relationship("Category", back_populates="expenses")
 
     __table_args__ = (
