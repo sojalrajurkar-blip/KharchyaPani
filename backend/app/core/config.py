@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     APP_PORT: int = 8000
     DATABASE_URL: str = "postgresql://postgres:password@127.0.0.1:5432/kharchyapani_db"
+    FRONTEND_URL: str = "http://localhost:3000"
     CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3000,http://127.0.0.1:3000"
     CONTACT_NAME: str = "KharchyaPani Support"
     CONTACT_EMAIL: str = "support@kharchyapani.local"
