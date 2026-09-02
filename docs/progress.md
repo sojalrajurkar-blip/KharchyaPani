@@ -38,6 +38,11 @@
   - `users`: `id` (PK), `email` (unique index), `hashed_password` (nullable for OAuth-only users), `full_name`, `is_active`, `is_verified`, `created_at`, `updated_at`.
   - `refresh_tokens`: `id` (PK), `user_id` (FK), `token_hash` (unique index), `expires_at`, `revoked_at`, `created_at`, `user_agent`, `ip_address`.
   - `password_reset_tokens`: `id` (PK), `user_id` (FK), `token_hash` (unique index), `expires_at`, `used_at`, `created_at`.
+- **Email Delivery Service (Local SMTP + Production Resend)** (`app/services/email_service.py`):
+  - **Dual Provider Architecture**: Automatically chooses **Local SMTP** (Mailpit, Mailhog, Gmail) during local development and **Resend REST API** in production.
+  - **Background Dispatch**: Non-blocking delivery using FastAPI `BackgroundTasks`.
+  - **Responsive Branded HTML Emails**: Titanium & Glowing Ice Blue dark aesthetic with 1-hour secure password reset links.
+
 - **Endpoints Implemented (`/api/auth/*`)**:
   - `POST /api/auth/register`: Creates account, hashes password via PBKDF2 (100,000 rounds), seeds starter categories (`Food & Dining`, `Groceries`, `Transportation`, `Utilities`, `Entertainment`, `Shopping`, `Health & Fitness`, `Miscellaneous`), sets HttpOnly refresh cookie, and returns access token + user details.
   - `POST /api/auth/login`: Authenticates email/password, issues rotated tokens.

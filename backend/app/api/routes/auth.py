@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Cookie
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Cookie, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.api.deps import get_current_active_user, check_rate_limit
@@ -17,6 +17,7 @@ from app.schemas.auth import (
     MessageResponse
 )
 from app.services.auth_service import AuthService
+from app.services.email_service import EmailService
 from app.core.security import create_access_token
 from app.core.config import settings
 
@@ -60,6 +61,7 @@ def register(
     user_in: UserRegister,
     request: Request,
     response: Response,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     check_rate_limit(request, limit=5, window_seconds=60)
@@ -67,6 +69,13 @@ def register(
         user = AuthService.register_user(db, user_in)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # Send Welcome Email in background
+    background_tasks.add_task(
+        EmailService.send_welcome_email,
+        to_email=user.email,
+        user_name=user.full_name
+    )
 
     access_token = create_access_token({"sub": str(user.id), "email": user.email})
     client_ip = request.client.host if request.client else None
@@ -219,14 +228,26 @@ def logout_all_devices(
 def forgot_password(
     data: ForgotPasswordRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     check_rate_limit(request, limit=3, window_seconds=60)
     token = AuthService.create_password_reset_token(db, data.email)
+    
+    if token:
+        user = AuthService.get_user_by_email(db, data.email)
+        user_name = user.full_name if user else None
+        background_tasks.add_task(
+            EmailService.send_password_reset_email,
+            to_email=data.email,
+            token=token,
+            user_name=user_name
+        )
+
     # Always return standard success message to prevent user enumeration
     # Return reset_token for dev/testing ease
     return MessageResponse(
-        message="If an account exists with this email, password reset instructions have been generated.",
+        message="If an account exists with this email, password reset instructions have been sent.",
         reset_token=token if settings.APP_ENV.lower() != "production" else None
     )
 

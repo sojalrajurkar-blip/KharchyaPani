@@ -26,6 +26,18 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     RATE_LIMIT_ENABLED: bool = True
 
+    # Email Settings (SMTP for Local Development, Resend for Production)
+    EMAIL_PROVIDER: str = "auto"  # "auto", "smtp", or "resend"
+    EMAIL_FROM: str = "noreply@kharchyapani.com"
+    EMAIL_FROM_NAME: str = "KharchyaPani"
+    SMTP_HOST: str = "localhost"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_TLS: bool = True
+    SMTP_SSL: bool = False
+    RESEND_API_KEY: str = ""
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
@@ -34,5 +46,14 @@ class Settings(BaseSettings):
                 return []
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
+
+    def get_effective_email_provider(self) -> str:
+        """Determines active email provider based on configuration."""
+        provider = self.EMAIL_PROVIDER.lower().strip()
+        if provider in ("smtp", "resend"):
+            return provider
+        if self.RESEND_API_KEY or self.APP_ENV.lower() == "production":
+            return "resend"
+        return "smtp"
 
 settings = Settings()
