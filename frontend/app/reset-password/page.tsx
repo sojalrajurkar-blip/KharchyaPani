@@ -77,9 +77,29 @@ function ResetPasswordForm() {
         </div>
 
         {error && (
-          <div className="mb-6 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-3 text-rose-300 text-sm">
-            <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-400 mt-0.5" />
-            <span>{error}</span>
+          <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm space-y-3">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-400 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold text-rose-200">Reset Link Issue</p>
+                <p className="text-xs text-rose-300/90 mt-0.5">{error}</p>
+              </div>
+            </div>
+
+            {(error.toLowerCase().includes('token') ||
+              error.toLowerCase().includes('expired') ||
+              error.toLowerCase().includes('invalid')) && (
+              <div className="pt-2 border-t border-rose-500/20 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <span className="text-xs text-slate-300">Need a fresh password reset link?</span>
+                <Link
+                  href="/forgot-password"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 hover:text-white border border-rose-500/30 text-xs font-semibold transition-colors"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>Resend / Request New Link</span>
+                </Link>
+              </div>
+            )}
           </div>
         )}
 

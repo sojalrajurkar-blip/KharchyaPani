@@ -95,12 +95,24 @@ export default function ForgotPasswordPage() {
                   </div>
                 )}
 
-                <Link
-                  href="/login"
-                  className="block text-center w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors"
-                >
-                  Return to Login
-                </Link>
+                <div className="pt-2 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSuccessInfo(null);
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>Didn&apos;t receive it? Resend Email</span>
+                  </button>
+
+                  <Link
+                    href="/login"
+                    className="block text-center w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium transition-colors"
+                  >
+                    Return to Login
+                  </Link>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
