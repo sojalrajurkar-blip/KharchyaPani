@@ -61,9 +61,10 @@ export const authApi = {
   },
 
   async forgotPassword(email: string): Promise<{ message: string; reset_token?: string }> {
+    const frontend_url = typeof window !== 'undefined' ? window.location.origin : undefined;
     return apiClient<{ message: string; reset_token?: string }>('/api/auth/forgot-password', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, frontend_url }),
     });
   },
 

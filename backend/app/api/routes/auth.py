@@ -53,6 +53,19 @@ def clear_refresh_cookie(response: Response) -> None:
         samesite="none" if is_prod else "lax"
     )
 
+def extract_client_origin(request: Request) -> Optional[str]:
+    """Extract client origin or referer base URL from incoming HTTP request."""
+    origin = request.headers.get("origin")
+    if origin and origin != "null":
+        return origin.strip().rstrip('/')
+    referer = request.headers.get("referer")
+    if referer:
+        from urllib.parse import urlparse
+        parsed = urlparse(referer)
+        if parsed.scheme and parsed.netloc:
+            return f"{parsed.scheme}://{parsed.netloc}"
+    return None
+
 # ---------------------------------------------------------------------------
 # Registration
 # ---------------------------------------------------------------------------
@@ -71,10 +84,12 @@ def register(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     # Send Welcome Email in background
+    client_origin = extract_client_origin(request)
     background_tasks.add_task(
         EmailService.send_welcome_email,
         to_email=user.email,
-        user_name=user.full_name
+        user_name=user.full_name,
+        client_origin=client_origin
     )
 
     access_token = create_access_token({"sub": str(user.id), "email": user.email})
@@ -237,11 +252,13 @@ def forgot_password(
     if token:
         user = AuthService.get_user_by_email(db, data.email)
         user_name = user.full_name if user else None
+        client_origin = data.frontend_url or extract_client_origin(request)
         background_tasks.add_task(
             EmailService.send_password_reset_email,
             to_email=data.email,
             token=token,
-            user_name=user_name
+            user_name=user_name,
+            client_origin=client_origin
         )
 
     # Always return standard success message to prevent user enumeration

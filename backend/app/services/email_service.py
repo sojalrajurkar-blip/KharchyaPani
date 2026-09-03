@@ -130,16 +130,54 @@ class EmailService:
             return False
 
     @classmethod
+    def resolve_frontend_url(cls, client_origin: Optional[str] = None) -> str:
+        """
+        Dynamically determine the frontend URL for email links.
+        Ensures localhost is never sent in production when a production origin is available.
+        """
+        is_prod = settings.APP_ENV.lower() == "production"
+
+        # 1. Direct client origin (from request payload or Origin/Referer header)
+        if client_origin and client_origin != "null":
+            cleaned = client_origin.strip().rstrip('/')
+            if not is_prod or ("localhost" not in cleaned and "127.0.0.1" not in cleaned):
+                return cleaned
+
+        # 2. Configured FRONTEND_URL
+        configured = (settings.FRONTEND_URL or "").strip().rstrip('/')
+        if not is_prod and configured:
+            return configured
+
+        if is_prod and configured and "localhost" not in configured and "127.0.0.1" not in configured:
+            return configured
+
+        # 3. If in production and FRONTEND_URL is still localhost, look for non-localhost origin in CORS_ORIGINS
+        cors_list = (
+            settings.CORS_ORIGINS
+            if isinstance(settings.CORS_ORIGINS, list)
+            else [o.strip() for o in str(settings.CORS_ORIGINS).split(",") if o.strip()]
+        )
+        for origin in cors_list:
+            cleaned = origin.strip().rstrip('/')
+            if cleaned and "localhost" not in cleaned and "127.0.0.1" not in cleaned:
+                return cleaned
+
+        # 4. Fallback to configured or default
+        return configured or "http://localhost:3000"
+
+    @classmethod
     def send_password_reset_email(
         cls,
         to_email: str,
         token: str,
-        user_name: Optional[str] = None
+        user_name: Optional[str] = None,
+        client_origin: Optional[str] = None
     ) -> bool:
         """
         Build and send a branded Password Reset email containing the secure token link.
         """
-        reset_link = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?token={token}"
+        base_url = cls.resolve_frontend_url(client_origin)
+        reset_link = f"{base_url}/reset-password?token={token}"
         greeting = f"Hello {user_name}," if user_name else "Hello,"
 
         subject = "KharchyaPani — Password Reset Instructions"
@@ -231,12 +269,13 @@ This link is valid for 1 hour. If you did not request a password reset, you can 
     def send_welcome_email(
         cls,
         to_email: str,
-        user_name: Optional[str] = None
+        user_name: Optional[str] = None,
+        client_origin: Optional[str] = None
     ) -> bool:
         """
         Build and send a branded Welcome email to newly registered users.
         """
-        app_url = settings.FRONTEND_URL.rstrip('/')
+        app_url = cls.resolve_frontend_url(client_origin)
         greeting = f"Hello {user_name}," if user_name else "Hello,"
 
         subject = f"Welcome to {settings.EMAIL_FROM_NAME}! 🚀 Track Smart, Save More"

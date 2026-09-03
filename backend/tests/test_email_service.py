@@ -119,4 +119,48 @@ def test_forgot_password_flow_triggers_email(client: TestClient):
         assert call_kwargs["user_name"] == "Email Flow User"
         assert "token" in call_kwargs
 
+def test_resolve_frontend_url_resolution():
+    orig_env = settings.APP_ENV
+    orig_url = settings.FRONTEND_URL
+    orig_cors = settings.CORS_ORIGINS
+
+    try:
+        # 1. Dev mode: client_origin takes priority
+        settings.APP_ENV = "development"
+        settings.FRONTEND_URL = "http://localhost:3000"
+        assert EmailService.resolve_frontend_url("https://preview.vercel.app") == "https://preview.vercel.app"
+        assert EmailService.resolve_frontend_url(None) == "http://localhost:3000"
+
+        # 2. Production mode: client origin used
+        settings.APP_ENV = "production"
+        settings.FRONTEND_URL = "http://localhost:3000"  # Misconfigured/default
+        settings.CORS_ORIGINS = ["https://kharchyapani.vercel.app"]
+        assert EmailService.resolve_frontend_url("https://kharchyapani.vercel.app") == "https://kharchyapani.vercel.app"
+
+        # 3. Production mode: localhost rejected when CORS origin available
+        assert EmailService.resolve_frontend_url(None) == "https://kharchyapani.vercel.app"
+        assert EmailService.resolve_frontend_url("http://localhost:3000") == "https://kharchyapani.vercel.app"
+
+        # 4. Production mode: explicitly configured production FRONTEND_URL respected
+        settings.FRONTEND_URL = "https://custom-domain.com"
+        assert EmailService.resolve_frontend_url(None) == "https://custom-domain.com"
+
+    finally:
+        settings.APP_ENV = orig_env
+        settings.FRONTEND_URL = orig_url
+        settings.CORS_ORIGINS = orig_cors
+
+def test_forgot_password_flow_with_origin_header(client: TestClient):
+    with patch.object(EmailService, "send_password_reset_email", return_value=True) as mock_email:
+        resp = client.post(
+            "/api/auth/forgot-password",
+            json={"email": "emailflow@example.com", "frontend_url": "https://kharchyapani.vercel.app"},
+            headers={"Origin": "https://kharchyapani.vercel.app"}
+        )
+        assert resp.status_code == 200
+        assert mock_email.called
+        call_kwargs = mock_email.call_args.kwargs
+        assert call_kwargs["client_origin"] == "https://kharchyapani.vercel.app"
+
+
 
