@@ -7,6 +7,9 @@ import { Category, Expense, ExpenseCreateInput } from '@/types';
 import { categoriesApi } from '@/lib/api/categories';
 import { validateExpenseForm, ExpenseValidationError } from '@/forms/validation/expense';
 import { CategoryFormModal } from '@/components/categories/CategoryFormModal';
+import { VoiceExpenseInput } from '@/components/ai/VoiceExpenseInput';
+import { ReceiptScannerModal } from '@/components/ai/ReceiptScannerModal';
+import { ExpenseParseResponse, ReceiptScanResponse } from '@/lib/api/ai';
 import {
   IndianRupee,
   Tag,
@@ -23,8 +26,11 @@ import {
   RotateCcw,
   CheckCircle2,
   FolderPlus,
-  Edit3
+  Edit3,
+  Camera,
+  Mic
 } from 'lucide-react';
+
 
 interface ExpenseFormProps {
   initialData?: Expense;
@@ -64,6 +70,44 @@ export function ExpenseForm({ initialData, onSubmit, isSubmitting, title }: Expe
 
   const [errors, setErrors] = useState<ExpenseValidationError>({});
   const [serverError, setServerError] = useState<string | null>(null);
+
+  // AI Modal and Voice States
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [showVoiceInput, setShowVoiceInput] = useState(false);
+
+  const handleAIParsed = (data: ExpenseParseResponse) => {
+    if (data.amount) setAmount(String(data.amount));
+    if (data.expense_date) setExpenseDate(data.expense_date);
+    if (data.suggested_category_id) {
+      setCategoryId(String(data.suggested_category_id));
+    } else if (data.suggested_category_name && categories.length > 0) {
+      const match = categories.find(c => c.name.toLowerCase() === data.suggested_category_name?.toLowerCase());
+      if (match) setCategoryId(String(match.id));
+    }
+    if (data.payment_mode) setPaymentMode(data.payment_mode);
+    if (data.note) setNote(data.note);
+    setCategoryNotice(`AI Auto-filled: ₹${data.amount} (${data.suggested_category_name || 'Expense'})`);
+    setTimeout(() => setCategoryNotice(null), 4000);
+  };
+
+  const handleReceiptScanned = (data: ReceiptScanResponse) => {
+    if (data.amount) setAmount(String(data.amount));
+    if (data.expense_date) setExpenseDate(String(data.expense_date));
+    if (data.suggested_category_id) {
+      setCategoryId(String(data.suggested_category_id));
+    } else if (data.suggested_category_name && categories.length > 0) {
+      const match = categories.find(c => c.name.toLowerCase() === data.suggested_category_name?.toLowerCase());
+      if (match) setCategoryId(String(match.id));
+    }
+    if (data.payment_mode) setPaymentMode(data.payment_mode);
+    if (data.note || data.merchant_name) {
+      setNote(data.note || `${data.merchant_name} Purchase`);
+    }
+    setCategoryNotice(`Receipt Parsed: ₹${data.amount} (${data.merchant_name || 'Receipt'})`);
+    setTimeout(() => setCategoryNotice(null), 4000);
+  };
+
+
 
   // Quick date calculations
   const todayStr = new Date().toISOString().split('T')[0];
@@ -231,7 +275,66 @@ export function ExpenseForm({ initialData, onSubmit, isSubmitting, title }: Expe
         )}
       </AnimatePresence>
 
+      {/* AI Quick Actions Banner */}
+      <div className="mb-6 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-sky-950/30 border border-sky-500/20">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-sky-500/20 text-sky-400">
+              <Sparkles className="w-4 h-4" />
+            </span>
+            <span className="text-xs font-semibold text-slate-200">Fast Fill with AI Assistant:</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsScannerOpen(true)}
+              className="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 hover:border-sky-500/60 text-xs font-medium flex items-center gap-1.5 transition"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Scan Receipt</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowVoiceInput(!showVoiceInput)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition ${
+                showVoiceInput
+                  ? 'bg-sky-500 text-slate-950 border-sky-400 font-semibold'
+                  : 'bg-slate-800/80 hover:bg-sky-500/20 text-sky-400 border-sky-500/30 hover:border-sky-500/60'
+              }`}
+            >
+              <Mic className="w-3.5 h-3.5" />
+              <span>{showVoiceInput ? 'Close Voice' : 'Voice / Smart Text'}</span>
+            </button>
+          </div>
+
+        </div>
+
+        {/* Expandable Voice / NLP Bar */}
+        <AnimatePresence>
+          {showVoiceInput && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <VoiceExpenseInput onParsed={handleAIParsed} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Receipt Scanner Modal */}
+      <ReceiptScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanned={handleReceiptScanned}
+      />
+
       <form onSubmit={handleSubmit} className="space-y-6">
+
 
         {/* 1. Hero Amount Field with Dedicated Prefix Box */}
         <div className="space-y-2.5">

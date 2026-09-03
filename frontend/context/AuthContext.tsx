@@ -25,6 +25,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const initAuth = async () => {
+    // Safety fallback: ensure loading never hangs for more than 1.5 seconds
+    const timeoutId = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
+
     try {
       const token = getAccessToken();
       if (token) {
@@ -42,9 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setAccessToken(null);
     } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };
+
 
   useEffect(() => {
     initAuth();

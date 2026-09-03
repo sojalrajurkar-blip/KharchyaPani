@@ -20,7 +20,10 @@ import {
   Lock,
   AlertCircle,
   CheckCircle2,
+  Bot,
+  Sparkles,
 } from 'lucide-react';
+
 import { useAuth } from '@/context/AuthContext';
 
 export function Navbar() {
@@ -144,10 +147,25 @@ export function Navbar() {
                   );
                 })}
 
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('kharcha-mitra-launcher');
+                    if (el) el.click();
+                  }}
+                  className="ml-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-500/20 via-cyan-500/15 to-blue-500/10 hover:from-sky-500/30 hover:to-cyan-500/25 text-sky-200 border border-sky-400/40 text-xs font-semibold flex items-center gap-1.5 transition shadow-[0_0_12px_rgba(56,189,248,0.2)]"
+                >
+                  <Bot className="w-4 h-4 text-sky-400" />
+                  <span>Kharcha AI</span>
+                  <Sparkles className="w-3 h-3 text-amber-300" />
+                </button>
+
+
                 <Link href="/expenses/new" className="ml-2 btn-primary text-sm py-2 px-3.5">
                   <PlusCircle className="w-4 h-4" />
                   Add Expense
                 </Link>
+
               </div>
             )}
 
@@ -271,14 +289,30 @@ export function Navbar() {
                     </Link>
                   );
                 })}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    const el = document.getElementById('kharcha-mitra-launcher');
+                    if (el) el.click();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-sky-500/20 via-cyan-500/15 to-blue-500/10 border border-sky-400/40 text-sky-200 font-semibold text-xs mt-2 transition shadow-sm"
+                >
+                  <Bot className="w-4 h-4 text-sky-400" />
+                  <span>Launch Kharcha AI Copilot</span>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                </button>
+
                 <Link
                   href="/expenses/new"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="btn-primary w-full py-2.5 text-center justify-center text-sm mt-2"
+                  className="btn-primary w-full py-2.5 text-center justify-center text-sm mt-1"
                 >
                   <PlusCircle className="w-4 h-4" />
                   Add Expense
                 </Link>
+
                 <div className="pt-2 border-t border-slate-800/80 space-y-1">
                   <button
                     onClick={() => {

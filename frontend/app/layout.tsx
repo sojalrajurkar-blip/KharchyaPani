@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Navbar } from '@/components/ui/Navbar';
 import { PwaInstallPrompt } from '@/components/ui/PwaInstallPrompt';
+import { KharchaMitraDrawer } from '@/components/ai/KharchaMitraDrawer';
 import { AuthProvider } from '@/context/AuthContext';
+
 
 export const metadata: Metadata = {
   title: 'KharchyaPani — Personal Expense Tracker',
@@ -57,8 +59,10 @@ export default function RootLayout({
               <p>KharchyaPani Personal Expense Tracker &copy; {new Date().getFullYear()}</p>
             </footer>
             <PwaInstallPrompt />
+            <KharchaMitraDrawer />
           </div>
         </AuthProvider>
+
       </body>
     </html>
   );

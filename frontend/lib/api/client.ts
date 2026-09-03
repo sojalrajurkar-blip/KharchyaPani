@@ -60,14 +60,18 @@ export async function apiClient<T>(
   const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     'Accept': 'application/json',
     ...(options.headers as Record<string, string>),
   };
 
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  }
+
   if (inMemoryAccessToken && !headers['Authorization']) {
     headers['Authorization'] = `Bearer ${inMemoryAccessToken}`;
   }
+
 
   const config: RequestInit = {
     cache: 'no-store',

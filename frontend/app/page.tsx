@@ -11,6 +11,7 @@ import { RecentExpensesTable } from '@/components/dashboard/RecentExpensesTable'
 import { CategorySummaryChart } from '@/components/dashboard/CategorySummaryChart';
 import { ExpensePieChart } from '@/components/dashboard/ExpensePieChart';
 import { DailyBudgetCard } from '@/components/dashboard/DailyBudgetCard';
+import { AIInsightsCard } from '@/components/dashboard/AIInsightsCard';
 import { CardSkeleton, TableSkeleton } from '@/components/ui/LoadingSkeleton';
 import { Modal } from '@/components/ui/Modal';
 import { Toast, ToastMessage } from '@/components/ui/Toast';
@@ -18,6 +19,7 @@ import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
 import { RefreshCw, AlertCircle, FolderKanban, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
+
 
 function DashboardContent() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -142,7 +144,11 @@ function DashboardContent() {
       {/* Header Summary Cards */}
       <DashboardHeader summary={summary} />
 
+      {/* AI Financial Insights & Spending Velocity */}
+      <AIInsightsCard />
+
       {/* Budget & Pie Chart Row */}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-4">
           <DailyBudgetCard progress={summary.daily_budget_progress} />

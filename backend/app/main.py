@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine
 import app.models
-from app.api.routes import health, contact, auth, categories, expenses, dashboard, budgets
+from app.api.routes import health, contact, auth, categories, expenses, dashboard, budgets, ai
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("kharchyapani")
@@ -40,7 +40,7 @@ except Exception as e:
 app = FastAPI(
     title="KharchyaPani API",
     description="Personal Expense Tracker Backend API with Secure JWT Authentication & Multi-Tenancy",
-    version="2.0.0"
+    version="3.0.0"
 )
 
 # CORS configuration
@@ -69,6 +69,8 @@ app.include_router(categories.router)
 app.include_router(expenses.router)
 app.include_router(dashboard.router)
 app.include_router(budgets.router)
+app.include_router(ai.router)
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

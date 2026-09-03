@@ -38,6 +38,15 @@ class Settings(BaseSettings):
     SMTP_SSL: bool = False
     RESEND_API_KEY: str = ""
 
+    # AI Provider Settings (Environment-Driven)
+    AI_PROVIDER: str = "auto"  # "auto", "gemini", "openai", or "mock"
+    AI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_API_KEY: str = ""
+    OPENAI_API_KEY: str = ""
+    AI_TEMPERATURE: float = 0.2
+    AI_MAX_OUTPUT_TOKENS: int = 1024
+    AI_RATE_LIMIT_PER_MINUTE: int = 15
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
@@ -52,8 +61,22 @@ class Settings(BaseSettings):
         provider = self.EMAIL_PROVIDER.lower().strip()
         if provider in ("smtp", "resend"):
             return provider
-        if self.RESEND_API_KEY or self.APP_ENV.lower() == "production":
+        # Resend is only used if explicitly set or in local dev when key is provided
+        if self.RESEND_API_KEY and self.APP_ENV.lower() != "production":
             return "resend"
         return "smtp"
 
+
+    def get_effective_ai_provider(self) -> str:
+        """Determines active AI provider based on configuration and available keys."""
+        provider = self.AI_PROVIDER.lower().strip()
+        if provider in ("gemini", "openai", "mock"):
+            return provider
+        if self.GEMINI_API_KEY and self.GEMINI_API_KEY.strip():
+            return "gemini"
+        if self.OPENAI_API_KEY and self.OPENAI_API_KEY.strip():
+            return "openai"
+        return "mock"
+
 settings = Settings()
+
