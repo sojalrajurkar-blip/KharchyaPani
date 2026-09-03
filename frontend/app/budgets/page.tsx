@@ -10,6 +10,8 @@ import { Toast, ToastMessage } from '@/components/ui/Toast';
 import { TableSkeleton } from '@/components/ui/LoadingSkeleton';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { Target, Plus, Trash2, Edit3, CheckCircle2, AlertTriangle, IndianRupee, Calendar } from 'lucide-react';
+import { getBudgetMood } from '@/lib/utils/budgetMood';
+
 
 export default function BudgetsPage() {
   const [statuses, setStatuses] = useState<BudgetProgress[]>([]);
@@ -256,46 +258,38 @@ export default function BudgetsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {statuses.map((st) => {
             const isOver = st.remaining_amount < 0;
-            const isWarning = st.percentage >= 85 && !isOver;
-
-            let badgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-            let barColor = 'bg-gradient-to-r from-emerald-500 to-teal-400';
-            let statusText = 'On Track';
-
-            if (isOver) {
-              badgeColor = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-              barColor = 'bg-gradient-to-r from-rose-500 to-red-600';
-              statusText = `Over Budget (-₹${Math.abs(st.remaining_amount).toLocaleString('en-IN')})`;
-            } else if (isWarning) {
-              badgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-              barColor = 'bg-gradient-to-r from-amber-500 to-yellow-400';
-              statusText = 'Near Limit';
-            }
+            const mood = getBudgetMood(st.percentage, isOver);
 
             return (
               <div
                 key={st.id || `${st.period_type}-${st.category_id}`}
-                className="card backdrop-blur-md bg-slate-900/50 border border-slate-800/80 p-6 rounded-2xl shadow-xl flex flex-col justify-between"
+                className={`card backdrop-blur-md bg-slate-900/50 border ${isOver ? 'border-rose-500/40 shadow-rose-950/20' : 'border-slate-800/80'} p-6 rounded-2xl shadow-xl flex flex-col justify-between transition-all`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">
-                        {st.period_type === 'daily' ? 'Daily Overall' : 'Monthly Category'}
-                      </span>
-                      <h3 className="text-lg font-bold text-white mt-0.5">
-                        {st.category_name || 'Overall'}
-                      </h3>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-2xl border ${mood.badgeClass} select-none`}>
+                        <span className={mood.isOver ? 'animate-bounce' : ''}>{mood.emoji}</span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">
+                          {st.period_type === 'daily' ? 'Daily Overall' : 'Monthly Category'}
+                        </span>
+                        <h3 className="text-lg font-bold text-white mt-0.5">
+                          {st.category_name || 'Overall'}
+                        </h3>
+                      </div>
                     </div>
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${badgeColor}`}>
-                      {statusText}
+                    <span className={`text-xs font-semibold px-3 py-1 rounded-full border flex items-center gap-1.5 ${mood.badgeClass}`}>
+                      <span>{mood.emoji}</span>
+                      <span>{isOver ? `Exceeded by ₹${Math.abs(st.remaining_amount).toLocaleString('en-IN')}` : mood.label}</span>
                     </span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 my-4 p-3 rounded-xl bg-slate-950/60 border border-slate-800/60 text-center">
                     <div>
                       <div className="text-xs text-slate-400">Spent</div>
-                      <div className="text-sm font-bold text-white mt-0.5">₹{Number(st.spent_amount).toLocaleString('en-IN')}</div>
+                      <div className={`text-sm font-bold mt-0.5 ${mood.textColor}`}>₹{Number(st.spent_amount).toLocaleString('en-IN')}</div>
                     </div>
                     <div>
                       <div className="text-xs text-slate-400">Limit</div>
@@ -311,19 +305,30 @@ export default function BudgetsPage() {
 
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs text-slate-400">
-                      <span>Budget Usage</span>
-                      <span className="font-semibold text-slate-200">{st.percentage}%</span>
+                      <span className="flex items-center gap-1">
+                        <span>Usage</span>
+                        <span>{mood.emoji}</span>
+                      </span>
+                      <span className={`font-bold ${mood.textColor}`}>{st.percentage}%</span>
                     </div>
-                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden p-0.5">
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                        className={`h-full rounded-full transition-all duration-500 ${mood.barColor}`}
                         style={{ width: `${Math.min(st.percentage, 100)}%` }}
                       />
                     </div>
                   </div>
+
+                  {isOver && (
+                    <div className="mt-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center gap-2 font-medium">
+                      <span className="text-base">😱 💸</span>
+                      <span>खर्च बजेटबाहेर गेला आहे! (Pocket on fire!)</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4 mt-4 border-t border-slate-800/60">
+
                   {st.id && (
                     <button
                       onClick={() => setDeletingId(st.id!)}
