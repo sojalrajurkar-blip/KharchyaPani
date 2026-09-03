@@ -322,9 +322,10 @@ export default function BudgetsPage() {
                   {isOver && (
                     <div className="mt-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center gap-2 font-medium">
                       <span className="text-base">😱 💸</span>
-                      <span>खर्च बजेटबाहेर गेला आहे! (Pocket on fire!)</span>
+                      <span>Spending exceeded budget limit! (Pocket on fire!)</span>
                     </div>
                   )}
+
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4 mt-4 border-t border-slate-800/60">

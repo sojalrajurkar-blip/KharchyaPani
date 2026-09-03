@@ -39,7 +39,7 @@ export function VoiceExpenseInput({ onParsed }: VoiceExpenseInputProps) {
       recognition.onerror = (event: any) => {
         setIsListening(false);
         if (event.error !== 'no-speech') {
-          setErrorMessage('आवाज ओळखण्यात अडचण आली. कृपया टाईप करून बघा.');
+          setErrorMessage('Could not recognize voice. Please try typing your expense.');
         }
       };
 
@@ -54,7 +54,7 @@ export function VoiceExpenseInput({ onParsed }: VoiceExpenseInputProps) {
   const toggleListening = () => {
     setErrorMessage(null);
     if (!recognitionRef.current) {
-      setErrorMessage('तुमच्या ब्राउझरमध्ये व्हॉइस इनपुट उपलब्ध नाही. कृपया मजकूर टाईप करा.');
+      setErrorMessage('Voice input is not supported in this browser. Please type your expense.');
       return;
     }
 
@@ -93,7 +93,7 @@ export function VoiceExpenseInput({ onParsed }: VoiceExpenseInputProps) {
     'Paid ₹450 for groceries at D-Mart yesterday',
     'Petrol ₹500 today via UPI',
     'Dinner with friends ₹850 via Card',
-    'काल मित्रांसोबत चहा नाश्ता केला ₹१२०',
+    'Auto rickshaw fare ₹120 cash',
   ];
 
   return (
@@ -126,8 +126,9 @@ export function VoiceExpenseInput({ onParsed }: VoiceExpenseInputProps) {
               lang === 'mr-IN' ? 'bg-sky-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            मराठी
+            Marathi
           </button>
+
         </div>
       </div>
 
