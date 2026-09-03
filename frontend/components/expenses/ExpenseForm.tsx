@@ -75,37 +75,67 @@ export function ExpenseForm({ initialData, onSubmit, isSubmitting, title }: Expe
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
 
+  const matchCategory = (suggestedId?: number, suggestedName?: string): string => {
+    if (suggestedId) return String(suggestedId);
+    if (!suggestedName || categories.length === 0) return categories[0] ? String(categories[0].id) : '';
+
+    const lowerName = suggestedName.toLowerCase().trim();
+    const exact = categories.find(c => c.name.toLowerCase().trim() === lowerName);
+    if (exact) return String(exact.id);
+
+    const substring = categories.find(c =>
+      lowerName.includes(c.name.toLowerCase().trim()) || c.name.toLowerCase().trim().includes(lowerName)
+    );
+    if (substring) return String(substring.id);
+
+    if (lowerName.includes('food') || lowerName.includes('din') || lowerName.includes('snack') || lowerName.includes('chai') || lowerName.includes('tea') || lowerName.includes('coffee') || lowerName.includes('eat') || lowerName.includes('restaurant') || lowerName.includes('grocery') || lowerName.includes('zomato') || lowerName.includes('swiggy')) {
+      const food = categories.find(c => c.name.toLowerCase().includes('food'));
+      if (food) return String(food.id);
+    }
+    if (lowerName.includes('travel') || lowerName.includes('petrol') || lowerName.includes('fuel') || lowerName.includes('auto') || lowerName.includes('cab') || lowerName.includes('uber') || lowerName.includes('ola') || lowerName.includes('transport') || lowerName.includes('rickshaw')) {
+      const travel = categories.find(c => c.name.toLowerCase().includes('travel'));
+      if (travel) return String(travel.id);
+    }
+    if (lowerName.includes('bill') || lowerName.includes('recharge') || lowerName.includes('electric') || lowerName.includes('wifi') || lowerName.includes('rent')) {
+      const bills = categories.find(c => c.name.toLowerCase().includes('bill'));
+      if (bills) return String(bills.id);
+    }
+    if (lowerName.includes('shop') || lowerName.includes('cloth') || lowerName.includes('amazon') || lowerName.includes('flipkart') || lowerName.includes('mart') || lowerName.includes('store')) {
+      const shop = categories.find(c => c.name.toLowerCase().includes('shop'));
+      if (shop) return String(shop.id);
+    }
+    if (lowerName.includes('med') || lowerName.includes('doctor') || lowerName.includes('health') || lowerName.includes('pharmacy') || lowerName.includes('hospital')) {
+      const health = categories.find(c => c.name.toLowerCase().includes('health'));
+      if (health) return String(health.id);
+    }
+
+    return categories[0] ? String(categories[0].id) : '';
+  };
+
   const handleAIParsed = (data: ExpenseParseResponse) => {
     if (data.amount) setAmount(String(data.amount));
     if (data.expense_date) setExpenseDate(data.expense_date);
-    if (data.suggested_category_id) {
-      setCategoryId(String(data.suggested_category_id));
-    } else if (data.suggested_category_name && categories.length > 0) {
-      const match = categories.find(c => c.name.toLowerCase() === data.suggested_category_name?.toLowerCase());
-      if (match) setCategoryId(String(match.id));
-    }
+    const catId = matchCategory(data.suggested_category_id, data.suggested_category_name);
+    if (catId) setCategoryId(catId);
     if (data.payment_mode) setPaymentMode(data.payment_mode);
     if (data.note) setNote(data.note);
-    setCategoryNotice(`AI Auto-filled: ₹${data.amount} (${data.suggested_category_name || 'Expense'})`);
-    setTimeout(() => setCategoryNotice(null), 4000);
+    setCategoryNotice(`✨ AI Auto-Filled: ₹${data.amount || 0} (${data.suggested_category_name || 'Expense'})! Check below & click "Save Expense".`);
+    setTimeout(() => setCategoryNotice(null), 6000);
   };
 
   const handleReceiptScanned = (data: ReceiptScanResponse) => {
     if (data.amount) setAmount(String(data.amount));
     if (data.expense_date) setExpenseDate(String(data.expense_date));
-    if (data.suggested_category_id) {
-      setCategoryId(String(data.suggested_category_id));
-    } else if (data.suggested_category_name && categories.length > 0) {
-      const match = categories.find(c => c.name.toLowerCase() === data.suggested_category_name?.toLowerCase());
-      if (match) setCategoryId(String(match.id));
-    }
+    const catId = matchCategory(data.suggested_category_id, data.suggested_category_name);
+    if (catId) setCategoryId(catId);
     if (data.payment_mode) setPaymentMode(data.payment_mode);
     if (data.note || data.merchant_name) {
       setNote(data.note || `${data.merchant_name} Purchase`);
     }
-    setCategoryNotice(`Receipt Parsed: ₹${data.amount} (${data.merchant_name || 'Receipt'})`);
-    setTimeout(() => setCategoryNotice(null), 4000);
+    setCategoryNotice(`📸 Receipt Extracted: ₹${data.amount || 0} (${data.merchant_name || 'Receipt'})! Check below & click "Save Expense".`);
+    setTimeout(() => setCategoryNotice(null), 6000);
   };
+
 
 
 
