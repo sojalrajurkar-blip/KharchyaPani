@@ -33,11 +33,18 @@ This document is the persistent repository memory for AI coding agents working o
 - **Backend Core**: `backend/app/core/config.py`, `backend/app/core/security.py`, `backend/app/db/base.py`, `backend/app/db/session.py`
 - **Backend Models**: `backend/app/models/user.py`, `backend/app/models/category.py`, `backend/app/models/expense.py`, `backend/app/models/budget.py`
 - **Backend Services**: `backend/app/services/auth_service.py`, `backend/app/services/expense_service.py`, `backend/app/services/category_service.py`, `backend/app/services/budget_service.py`, `backend/app/services/dashboard_service.py`
-- **Backend Routes**: `backend/app/api/routes/auth.py`, `backend/app/api/routes/expenses.py`, `backend/app/api/routes/categories.py`, `backend/app/api/routes/budgets.py`, `backend/app/api/routes/dashboard.py`
-- **Frontend API Layer**: `frontend/lib/api/client.ts` (with 401 auto-refresh interceptor), `frontend/lib/api/auth.ts`, `frontend/lib/api/expenses.ts`, `frontend/lib/api/categories.ts`, `frontend/lib/api/budgets.ts`, `frontend/lib/api/dashboard.ts`
+- **Backend AI Engine (v3.0)**: `backend/app/services/ai/base.py`, `backend/app/services/ai/gemini_provider.py`, `backend/app/services/ai/mock_provider.py`, `backend/app/services/ai/factory.py` (Outputs: 100% English)
+- **Backend Routes**: `backend/app/api/routes/auth.py`, `backend/app/api/routes/expenses.py`, `backend/app/api/routes/categories.py`, `backend/app/api/routes/budgets.py`, `backend/app/api/routes/dashboard.py`, `backend/app/api/routes/ai.py`
+- **Frontend API Layer**: `frontend/lib/api/client.ts` (with 401 auto-refresh interceptor), `frontend/lib/api/auth.ts`, `frontend/lib/api/expenses.ts`, `frontend/lib/api/categories.ts`, `frontend/lib/api/budgets.ts`, `frontend/lib/api/dashboard.ts`, `frontend/lib/api/ai.ts`
+- **Frontend AI & Dynamic Components**: `frontend/components/ai/KharchaMitraDrawer.tsx` (Kharcha AI Copilot), `frontend/components/ai/ReceiptScannerModal.tsx` (OCR Scanner), `frontend/components/ai/VoiceExpenseInput.tsx` (Voice Auto-Parse), `frontend/components/dashboard/AIInsightsCard.tsx` (Velocity Forecast), `frontend/lib/utils/budgetMood.ts` (Dynamic Mood Avatars)
 - **Frontend State & Guards**: `frontend/context/AuthContext.tsx`, `frontend/components/auth/AuthGuard.tsx`
 - **Frontend Pages**: `frontend/app/page.tsx` (Dashboard), `frontend/app/login/page.tsx`, `frontend/app/register/page.tsx`, `frontend/app/forgot-password/page.tsx`, `frontend/app/reset-password/page.tsx`, `frontend/app/expenses/page.tsx`, `frontend/app/categories/page.tsx`, `frontend/app/budgets/page.tsx`
+- **Documentation**: `docs/ai-features.md`, `docs/personal-expense-tracker-prd.md`, `docs/personal-expense-tracker-srs.md`, `PROGRESS.md`
 
-## 5. Verification Commands
-- **Backend Pytest (22/22 tests)**: `backend\.venv\Scripts\pytest backend/tests`
+## 5. Verification Commands & Health Status
+- **Backend Pytest (39/39 tests)**: `backend\.venv\Scripts\pytest backend/tests`
 - **Frontend Next.js Build (13/13 routes)**: `npm.cmd run build` inside `frontend/`
+- **Current State**: 100% passing, English localized AI responses, Git synchronized with `origin/main`.
+
+## 6. Upcoming Session Roadmap
+- **Next Focus**: Comprehensive UI/UX overhaul across all screens and components (modern polish, micro-animations, glassmorphism refinement, and enhanced user interactions).
