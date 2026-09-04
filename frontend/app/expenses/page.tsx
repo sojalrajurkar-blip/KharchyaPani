@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+
+import { motion, AnimatePresence } from 'framer-motion';
 import { expensesApi } from '@/lib/api/expenses';
 import { categoriesApi } from '@/lib/api/categories';
 import { Expense, Category, ExpenseFilterParams } from '@/types';
@@ -11,7 +12,11 @@ import { TableSkeleton } from '@/components/ui/LoadingSkeleton';
 import { Modal } from '@/components/ui/Modal';
 import { Toast, ToastMessage } from '@/components/ui/Toast';
 import AuthGuard from '@/components/auth/AuthGuard';
-import { History, PlusCircle, Calendar, Tag, CreditCard, Edit3, Trash2 } from 'lucide-react';
+import { History, PlusCircle, Calendar, Tag, CreditCard, Edit3, Trash2, Mic, Camera } from 'lucide-react';
+import { VoiceExpenseInput } from '@/components/ai/VoiceExpenseInput';
+import { ReceiptScannerModal } from '@/components/ai/ReceiptScannerModal';
+import { useAutoSaveExpense } from '@/lib/hooks/useAutoSaveExpense';
+import { ExpenseParseResponse, ReceiptScanResponse } from '@/lib/api/ai';
 
 export default function ExpenseHistoryPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -21,18 +26,32 @@ export default function ExpenseHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Toast notifications
+  // Quick AI input states
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  // Toast notifications with Undo action support
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const addToast = (type: 'success' | 'error', text: string) => {
-    const id = Date.now().toString();
-    setToasts((prev) => [...prev, { id, type, text }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
-  };
+  const addToast = useCallback(
+    (payload: { type: 'success' | 'error' | 'info'; text: string; title?: string; action?: any; secondaryAction?: any } | string, maybeText?: string) => {
+      const id = Date.now().toString();
+      if (typeof payload === 'string') {
+        const type = (payload as any) || 'success';
+        const text = maybeText || '';
+        setToasts((prev) => [...prev, { id, type, text }]);
+      } else {
+        setToasts((prev) => [...prev, { ...payload, id }]);
+      }
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 7000);
+    },
+    []
+  );
 
   // Delete modal state
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+
 
   const loadData = useCallback(async () => {
     try {
@@ -56,6 +75,40 @@ export default function ExpenseHistoryPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Auto-Save Hook for Expense History Page
+  const { autoSaveExpense } = useAutoSaveExpense({
+    categories,
+    addToast,
+    onSuccess: () => {
+      loadData();
+    },
+    onUndo: () => {
+      loadData();
+    },
+  });
+
+  const handleAutoSaveVoice = async (data: ExpenseParseResponse) => {
+    await autoSaveExpense({
+      amount: data.amount,
+      expense_date: data.expense_date,
+      suggested_category_id: data.suggested_category_id,
+      suggested_category_name: data.suggested_category_name,
+      payment_mode: data.payment_mode,
+      note: data.note,
+    });
+  };
+
+  const handleAutoSaveReceipt = async (data: ReceiptScanResponse) => {
+    await autoSaveExpense({
+      amount: data.amount,
+      expense_date: data.expense_date,
+      suggested_category_id: data.suggested_category_id,
+      suggested_category_name: data.suggested_category_name,
+      payment_mode: data.payment_mode,
+      note: data.note || (data.merchant_name ? `${data.merchant_name} Purchase` : undefined),
+    });
+  };
 
   const handleDelete = async () => {
     if (!deletingExpense) return;
@@ -92,6 +145,14 @@ export default function ExpenseHistoryPage() {
           onCancel={() => setDeletingExpense(null)}
         />
 
+        {/* Receipt Scanner Modal */}
+        <ReceiptScannerModal
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          onAutoSave={handleAutoSaveReceipt}
+          defaultAutoSave={true}
+        />
+
         {/* Header Title & Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -100,10 +161,59 @@ export default function ExpenseHistoryPage() {
               Review, filter, update, or remove your recorded transactions
             </p>
           </div>
-          <Link href="/expenses/new" className="btn-primary text-sm self-start sm:self-auto">
-            <PlusCircle className="w-4 h-4" /> Add New Expense
-          </Link>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Quick Voice Add Button */}
+            <button
+              type="button"
+              onClick={() => setIsVoiceOpen(!isVoiceOpen)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition shadow-sm ${
+                isVoiceOpen
+                  ? 'bg-sky-500 text-slate-950 border-sky-400 font-bold'
+                  : 'bg-slate-900/90 text-sky-300 border-sky-500/30 hover:bg-sky-500/15 hover:border-sky-500/50'
+              }`}
+            >
+              <Mic className="w-3.5 h-3.5" />
+              <span>{isVoiceOpen ? 'Close Voice' : 'Voice Add'}</span>
+            </button>
+
+            {/* Quick Scan Receipt Button */}
+            <button
+              type="button"
+              onClick={() => setIsScannerOpen(true)}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-slate-900/90 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/15 hover:border-cyan-500/50 transition shadow-sm"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Scan Receipt</span>
+            </button>
+
+            <Link
+              href="/expenses/new"
+              className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5 shadow-md shadow-sky-500/20"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Add Expense</span>
+            </Link>
+          </div>
         </div>
+
+        {/* Expandable Voice Bar */}
+        <AnimatePresence>
+          {isVoiceOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, y: -10 }}
+              animate={{ opacity: 1, height: 'auto', y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -10 }}
+              className="overflow-hidden"
+            >
+              <VoiceExpenseInput
+                onAutoSave={handleAutoSaveVoice}
+                defaultAutoSave={true}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
 
         {/* Filtering Toolbar Component */}
         <ExpenseFilterBar

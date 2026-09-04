@@ -10,6 +10,9 @@ import { CategoryFormModal } from '@/components/categories/CategoryFormModal';
 import { VoiceExpenseInput } from '@/components/ai/VoiceExpenseInput';
 import { ReceiptScannerModal } from '@/components/ai/ReceiptScannerModal';
 import { ExpenseParseResponse, ReceiptScanResponse } from '@/lib/api/ai';
+import { matchUserCategory } from '@/lib/utils/categoryMatcher';
+import { useAutoSaveExpense } from '@/lib/hooks/useAutoSaveExpense';
+import { Toast, ToastMessage } from '@/components/ui/Toast';
 import {
   IndianRupee,
   Tag,
@@ -28,7 +31,8 @@ import {
   FolderPlus,
   Edit3,
   Camera,
-  Mic
+  Mic,
+  Zap
 } from 'lucide-react';
 
 
@@ -75,66 +79,78 @@ export function ExpenseForm({ initialData, onSubmit, isSubmitting, title }: Expe
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
 
-  const matchCategory = (suggestedId?: number, suggestedName?: string): string => {
-    if (suggestedId) return String(suggestedId);
-    if (!suggestedName || categories.length === 0) return categories[0] ? String(categories[0].id) : '';
+  // Toast notification state with Undo support
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const addToast = useCallback((t: Omit<ToastMessage, 'id'>) => {
+    const id = Date.now().toString();
+    setToasts((prev) => [...prev, { ...t, id }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((item) => item.id !== id));
+    }, 7000);
+  }, []);
 
-    const lowerName = suggestedName.toLowerCase().trim();
-    const exact = categories.find(c => c.name.toLowerCase().trim() === lowerName);
-    if (exact) return String(exact.id);
+  // Auto-Save Hook for Voice & Scan
+  const { autoSaveExpense } = useAutoSaveExpense({
+    categories,
+    addToast,
+    onSuccess: (saved) => {
+      setAmount('');
+      setNote('');
+      setCategoryNotice(`🚀 Auto-Saved ₹${saved.amount} to database! (Tap Undo in toast if needed)`);
+      setTimeout(() => setCategoryNotice(null), 6000);
+    },
+    onUndo: (undone) => {
+      setCategoryNotice(`Reverted ₹${undone.amount} expense.`);
+      setTimeout(() => setCategoryNotice(null), 4000);
+    },
+  });
 
-    const substring = categories.find(c =>
-      lowerName.includes(c.name.toLowerCase().trim()) || c.name.toLowerCase().trim().includes(lowerName)
-    );
-    if (substring) return String(substring.id);
+  const handleAutoSaveVoice = async (data: ExpenseParseResponse) => {
+    await autoSaveExpense({
+      amount: data.amount,
+      expense_date: data.expense_date,
+      suggested_category_id: data.suggested_category_id,
+      suggested_category_name: data.suggested_category_name,
+      payment_mode: data.payment_mode,
+      note: data.note,
+    });
+  };
 
-    if (lowerName.includes('food') || lowerName.includes('din') || lowerName.includes('snack') || lowerName.includes('chai') || lowerName.includes('tea') || lowerName.includes('coffee') || lowerName.includes('eat') || lowerName.includes('restaurant') || lowerName.includes('grocery') || lowerName.includes('zomato') || lowerName.includes('swiggy')) {
-      const food = categories.find(c => c.name.toLowerCase().includes('food'));
-      if (food) return String(food.id);
-    }
-    if (lowerName.includes('travel') || lowerName.includes('petrol') || lowerName.includes('fuel') || lowerName.includes('auto') || lowerName.includes('cab') || lowerName.includes('uber') || lowerName.includes('ola') || lowerName.includes('transport') || lowerName.includes('rickshaw')) {
-      const travel = categories.find(c => c.name.toLowerCase().includes('travel'));
-      if (travel) return String(travel.id);
-    }
-    if (lowerName.includes('bill') || lowerName.includes('recharge') || lowerName.includes('electric') || lowerName.includes('wifi') || lowerName.includes('rent')) {
-      const bills = categories.find(c => c.name.toLowerCase().includes('bill'));
-      if (bills) return String(bills.id);
-    }
-    if (lowerName.includes('shop') || lowerName.includes('cloth') || lowerName.includes('amazon') || lowerName.includes('flipkart') || lowerName.includes('mart') || lowerName.includes('store')) {
-      const shop = categories.find(c => c.name.toLowerCase().includes('shop'));
-      if (shop) return String(shop.id);
-    }
-    if (lowerName.includes('med') || lowerName.includes('doctor') || lowerName.includes('health') || lowerName.includes('pharmacy') || lowerName.includes('hospital')) {
-      const health = categories.find(c => c.name.toLowerCase().includes('health'));
-      if (health) return String(health.id);
-    }
-
-    return categories[0] ? String(categories[0].id) : '';
+  const handleAutoSaveReceipt = async (data: ReceiptScanResponse) => {
+    await autoSaveExpense({
+      amount: data.amount,
+      expense_date: data.expense_date,
+      suggested_category_id: data.suggested_category_id,
+      suggested_category_name: data.suggested_category_name,
+      payment_mode: data.payment_mode,
+      note: data.note || (data.merchant_name ? `${data.merchant_name} Purchase` : undefined),
+    });
   };
 
   const handleAIParsed = (data: ExpenseParseResponse) => {
     if (data.amount) setAmount(String(data.amount));
     if (data.expense_date) setExpenseDate(data.expense_date);
-    const catId = matchCategory(data.suggested_category_id, data.suggested_category_name);
-    if (catId) setCategoryId(catId);
+    const matched = matchUserCategory(categories, data.suggested_category_id, data.suggested_category_name);
+    if (matched) setCategoryId(String(matched.id));
     if (data.payment_mode) setPaymentMode(data.payment_mode);
     if (data.note) setNote(data.note);
-    setCategoryNotice(`✨ AI Auto-Filled: ₹${data.amount || 0} (${data.suggested_category_name || 'Expense'})! Check below & click "Save Expense".`);
+    setCategoryNotice(`✨ AI Pre-Filled: ₹${data.amount || 0} (${matched?.name || 'Expense'})! Review & click "Save Expense".`);
     setTimeout(() => setCategoryNotice(null), 6000);
   };
 
   const handleReceiptScanned = (data: ReceiptScanResponse) => {
     if (data.amount) setAmount(String(data.amount));
     if (data.expense_date) setExpenseDate(String(data.expense_date));
-    const catId = matchCategory(data.suggested_category_id, data.suggested_category_name);
-    if (catId) setCategoryId(catId);
+    const matched = matchUserCategory(categories, data.suggested_category_id, data.suggested_category_name);
+    if (matched) setCategoryId(String(matched.id));
     if (data.payment_mode) setPaymentMode(data.payment_mode);
     if (data.note || data.merchant_name) {
       setNote(data.note || `${data.merchant_name} Purchase`);
     }
-    setCategoryNotice(`📸 Receipt Extracted: ₹${data.amount || 0} (${data.merchant_name || 'Receipt'})! Check below & click "Save Expense".`);
+    setCategoryNotice(`📸 Receipt Pre-Filled: ₹${data.amount || 0} (${data.merchant_name || 'Receipt'})! Review & click "Save Expense".`);
     setTimeout(() => setCategoryNotice(null), 6000);
   };
+
 
 
 
@@ -247,121 +263,131 @@ export function ExpenseForm({ initialData, onSubmit, isSubmitting, title }: Expe
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="max-w-2xl mx-auto glass-card p-6 sm:p-8 relative overflow-hidden shadow-2xl"
-    >
-      {/* Inline Category Form Modal */}
-      <CategoryFormModal
-        isOpen={isCategoryModalOpen}
-        category={categoryToEdit}
-        onSubmit={handleSaveCategory}
-        onClose={() => setIsCategoryModalOpen(false)}
-        isSubmitting={isCategorySubmitting}
-      />
+    <>
+      <Toast toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
 
-      {/* Decorative Aura Gradient */}
-      <div className="absolute -top-24 -right-24 w-60 h-60 bg-sky-500/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="max-w-2xl mx-auto glass-card p-6 sm:p-8 relative overflow-hidden shadow-2xl"
+      >
+        {/* Inline Category Form Modal */}
+        <CategoryFormModal
+          isOpen={isCategoryModalOpen}
+          category={categoryToEdit}
+          onSubmit={handleSaveCategory}
+          onClose={() => setIsCategoryModalOpen(false)}
+          isSubmitting={isCategorySubmitting}
+        />
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-800/80">
-        <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-sky-400" />
-            {title}
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">Fill in the details below to record your expense</p>
-        </div>
-        <Link href="/expenses" className="btn-secondary text-xs">
-          <ArrowLeft className="w-4 h-4" /> Cancel
-        </Link>
-      </div>
+        {/* Decorative Aura Gradient */}
+        <div className="absolute -top-24 -right-24 w-60 h-60 bg-sky-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
 
-      <AnimatePresence>
-        {serverError && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-2.5"
-          >
-            <span>{serverError}</span>
-          </motion.div>
-        )}
-
-        {categoryNotice && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="mb-6 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-2"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>{categoryNotice}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* AI Quick Actions Banner */}
-      <div className="mb-6 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-sky-950/30 border border-sky-500/20">
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-sky-500/20 text-sky-400">
-              <Sparkles className="w-4 h-4" />
-            </span>
-            <span className="text-xs font-semibold text-slate-200">Fast Fill with AI Assistant:</span>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-800/80">
+          <div>
+            <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-sky-400" />
+              {title}
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">Fill in the details below or use AI Instant Auto-Save</p>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setIsScannerOpen(true)}
-              className="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 hover:border-sky-500/60 text-xs font-medium flex items-center gap-1.5 transition"
-            >
-              <Camera className="w-3.5 h-3.5" />
-              <span>Scan Receipt</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowVoiceInput(!showVoiceInput)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition ${
-                showVoiceInput
-                  ? 'bg-sky-500 text-slate-950 border-sky-400 font-semibold'
-                  : 'bg-slate-800/80 hover:bg-sky-500/20 text-sky-400 border-sky-500/30 hover:border-sky-500/60'
-              }`}
-            >
-              <Mic className="w-3.5 h-3.5" />
-              <span>{showVoiceInput ? 'Close Voice' : 'Voice / Smart Text'}</span>
-            </button>
-          </div>
-
+          <Link href="/expenses" className="btn-secondary text-xs">
+            <ArrowLeft className="w-4 h-4" /> Cancel
+          </Link>
         </div>
 
-        {/* Expandable Voice / NLP Bar */}
         <AnimatePresence>
-          {showVoiceInput && (
+          {serverError && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
+              className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-2.5"
             >
-              <VoiceExpenseInput onParsed={handleAIParsed} />
+              <span>{serverError}</span>
+            </motion.div>
+          )}
+
+          {categoryNotice && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mb-6 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-2"
+            >
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{categoryNotice}</span>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
 
-      {/* Receipt Scanner Modal */}
-      <ReceiptScannerModal
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onScanned={handleReceiptScanned}
-      />
+        {/* AI Quick Actions Banner */}
+        <div className="mb-6 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-sky-950/30 border border-sky-500/20">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-sky-500/20 text-sky-400">
+                <Sparkles className="w-4 h-4" />
+              </span>
+              <span className="text-xs font-semibold text-slate-200">AI Fast Add (Auto-Saves to DB):</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsScannerOpen(true)}
+                className="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 hover:border-sky-500/60 text-xs font-medium flex items-center gap-1.5 transition"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Scan Receipt</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowVoiceInput(!showVoiceInput)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition ${
+                  showVoiceInput
+                    ? 'bg-sky-500 text-slate-950 border-sky-400 font-semibold'
+                    : 'bg-slate-800/80 hover:bg-sky-500/20 text-sky-400 border-sky-500/30 hover:border-sky-500/60'
+                }`}
+              >
+                <Mic className="w-3.5 h-3.5" />
+                <span>{showVoiceInput ? 'Close Voice' : 'Voice / Smart Text'}</span>
+              </button>
+            </div>
+
+          </div>
+
+          {/* Expandable Voice / NLP Bar */}
+          <AnimatePresence>
+            {showVoiceInput && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <VoiceExpenseInput
+                  onParsed={handleAIParsed}
+                  onAutoSave={handleAutoSaveVoice}
+                  defaultAutoSave={true}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Receipt Scanner Modal */}
+        <ReceiptScannerModal
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          onScanned={handleReceiptScanned}
+          onAutoSave={handleAutoSaveReceipt}
+          defaultAutoSave={true}
+        />
+
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
@@ -647,5 +673,7 @@ export function ExpenseForm({ initialData, onSubmit, isSubmitting, title }: Expe
 
       </form>
     </motion.div>
+    </>
   );
 }
+

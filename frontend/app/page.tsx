@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { dashboardApi } from '@/lib/api/dashboard';
 import { expensesApi } from '@/lib/api/expenses';
 import { categoriesApi } from '@/lib/api/categories';
@@ -17,8 +17,12 @@ import { Modal } from '@/components/ui/Modal';
 import { Toast, ToastMessage } from '@/components/ui/Toast';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
-import { RefreshCw, AlertCircle, FolderKanban, PlusCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle, FolderKanban, PlusCircle, Mic, Camera, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { VoiceExpenseInput } from '@/components/ai/VoiceExpenseInput';
+import { ReceiptScannerModal } from '@/components/ai/ReceiptScannerModal';
+import { useAutoSaveExpense } from '@/lib/hooks/useAutoSaveExpense';
+import { ExpenseParseResponse, ReceiptScanResponse } from '@/lib/api/ai';
 
 
 function DashboardContent() {
@@ -28,18 +32,32 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Toast state
+  // Quick AI input states
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  // Toast state with Undo support
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const addToast = (type: 'success' | 'error', text: string) => {
-    const id = Date.now().toString();
-    setToasts((prev) => [...prev, { id, type, text }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
-  };
+  const addToast = useCallback(
+    (payload: { type: 'success' | 'error' | 'info'; text: string; title?: string; action?: any; secondaryAction?: any } | string, maybeText?: string) => {
+      const id = Date.now().toString();
+      if (typeof payload === 'string') {
+        const type = (payload as any) || 'success';
+        const text = maybeText || '';
+        setToasts((prev) => [...prev, { id, type, text }]);
+      } else {
+        setToasts((prev) => [...prev, { ...payload, id }]);
+      }
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 7000);
+    },
+    []
+  );
 
   // Delete modal state
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -57,6 +75,40 @@ function DashboardContent() {
       setLoading(false);
     }
   }, []);
+
+  // Auto-Save Hook for Dashboard Quick Actions
+  const { autoSaveExpense } = useAutoSaveExpense({
+    categories,
+    addToast,
+    onSuccess: () => {
+      fetchDashboard();
+    },
+    onUndo: () => {
+      fetchDashboard();
+    },
+  });
+
+  const handleAutoSaveVoice = async (data: ExpenseParseResponse) => {
+    await autoSaveExpense({
+      amount: data.amount,
+      expense_date: data.expense_date,
+      suggested_category_id: data.suggested_category_id,
+      suggested_category_name: data.suggested_category_name,
+      payment_mode: data.payment_mode,
+      note: data.note,
+    });
+  };
+
+  const handleAutoSaveReceipt = async (data: ReceiptScanResponse) => {
+    await autoSaveExpense({
+      amount: data.amount,
+      expense_date: data.expense_date,
+      suggested_category_id: data.suggested_category_id,
+      suggested_category_name: data.suggested_category_name,
+      payment_mode: data.payment_mode,
+      note: data.note || (data.merchant_name ? `${data.merchant_name} Purchase` : undefined),
+    });
+  };
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -125,7 +177,15 @@ function DashboardContent() {
         onCancel={() => setDeletingExpense(null)}
       />
 
-      {/* Title */}
+      {/* Receipt Scanner Modal directly on Dashboard */}
+      <ReceiptScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onAutoSave={handleAutoSaveReceipt}
+        defaultAutoSave={true}
+      />
+
+      {/* Title & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-100">Dashboard</h1>
@@ -133,13 +193,69 @@ function DashboardContent() {
             Real-time financial overview, budget tracking, and interactive analytics
           </p>
         </div>
-        <button
-          onClick={fetchDashboard}
-          className="btn-secondary text-xs self-start sm:self-auto"
-        >
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh Data
-        </button>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Quick Voice Add Button */}
+          <button
+            type="button"
+            onClick={() => setIsVoiceOpen(!isVoiceOpen)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition shadow-sm ${
+              isVoiceOpen
+                ? 'bg-sky-500 text-slate-950 border-sky-400 font-bold'
+                : 'bg-slate-900/90 text-sky-300 border-sky-500/30 hover:bg-sky-500/15 hover:border-sky-500/50'
+            }`}
+          >
+            <Mic className="w-3.5 h-3.5" />
+            <span>{isVoiceOpen ? 'Close Voice' : 'Voice Add'}</span>
+          </button>
+
+          {/* Quick Scan Receipt Button */}
+          <button
+            type="button"
+            onClick={() => setIsScannerOpen(true)}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-slate-900/90 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/15 hover:border-cyan-500/50 transition shadow-sm"
+          >
+            <Camera className="w-3.5 h-3.5" />
+            <span>Scan Receipt</span>
+          </button>
+
+          {/* Regular Add Expense Link */}
+          <Link
+            href="/expenses/new"
+            className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5 shadow-md shadow-sky-500/20"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Expense</span>
+          </Link>
+
+          {/* Refresh Button */}
+          <button
+            onClick={fetchDashboard}
+            className="btn-secondary text-xs py-1.5 px-2.5"
+            title="Refresh dashboard"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
+
+      {/* Expandable Voice Bar directly on Dashboard */}
+      <AnimatePresence>
+        {isVoiceOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, y: -10 }}
+            animate={{ opacity: 1, height: 'auto', y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -10 }}
+            className="overflow-hidden"
+          >
+            <VoiceExpenseInput
+              onAutoSave={handleAutoSaveVoice}
+              defaultAutoSave={true}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
 
       {/* Header Summary Cards */}
       <DashboardHeader summary={summary} />
