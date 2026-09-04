@@ -41,7 +41,7 @@ class MockAIProvider(BaseAIProvider):
             suggested_category_name=cat_name,
             suggested_category_id=cat_id,
             payment_mode="UPI",
-            note="पावती स्कॅन: किराणा सामान आणि दैनंदिन वस्तू (Sample Mock Scan)",
+            note="Receipt scan: Groceries and daily essentials (Sample Mock Scan)",
             confidence=0.96,
             raw_text="DMart Supermarket\nDate: Today\nItem 1: 150.00\nItem 2: 335.50\nTotal: 485.50\nPaid via UPI",
         )
@@ -138,24 +138,24 @@ class MockAIProvider(BaseAIProvider):
 
         msg_lower = message.lower()
         if any(w in msg_lower for w in ("हॅलो", "hello", "hi", "namaskar", "नमस्कार")):
-            reply = "नमस्कार! मी तुमचा **खर्चामित्र** AI सहाय्यक आहे. तुमच्या खर्चाचे विश्लेषण, बजेटची स्थिती किंवा सेव्हिंग्स टिप्सबद्दल मला काहीही विचारा!"
-        elif any(w in msg_lower for w in ("बजेट", "budget", "शिल्लक", "उरले")):
+            reply = "Hello! I am your **Kharcha AI** Copilot assistant. Ask me anything about your spending analysis, budget status, or smart savings tips!"
+        elif any(w in msg_lower for w in ("बजेट", "budget", "शिल्लक", "उरले", "limit", "remaining")):
             if monthly_budget > 0:
                 rem = max(0.0, monthly_budget - monthly_total)
                 pct = round((monthly_total / monthly_budget) * 100, 1)
-                reply = f"या महिन्यासाठी तुमचे एकूण बजेट **₹{monthly_budget:,.2f}** आहे. आतापर्यंत तुम्ही **₹{monthly_total:,.2f}** ({pct}%) खर्च केले आहेत. बजेट पाळण्यासाठी तुमच्याकडे अजून **₹{rem:,.2f}** शिल्लक आहेत."
+                reply = f"Your total budget for this month is **₹{monthly_budget:,.2f}**. You have spent **₹{monthly_total:,.2f}** ({pct}%) so far. You still have **₹{rem:,.2f}** remaining to stay within your limit."
             else:
-                reply = f"या महिन्यात तुमचा एकूण खर्च **₹{monthly_total:,.2f}** आहे. तुम्ही अजून मासिक बजेट सेट केलेले नाही. खर्चावर नियंत्रण ठेवण्यासाठी बजेट नक्की सेट करा!"
-        elif any(w in msg_lower for w in ("कमी", "वाचवू", "save", "cut", "सल्ला")):
-            reply = f"या महिन्यात तुमचा सर्वाधिक खर्च **'{top_cat}'** या कॅटेगरीमध्ये झाला आहे. शनिवार-रविवारचा अनावश्यक खर्च १०-१५% कमी केल्यास तुम्ही महिन्याला सहज ₹१,००० ते ₹१,५०० वाचवू शकता."
+                reply = f"Your total spending this month is **₹{monthly_total:,.2f}**. You have not set a monthly budget yet. Setting a budget helps you monitor and control your spending effectively!"
+        elif any(w in msg_lower for w in ("कमी", "वाचवू", "save", "cut", "सल्ला", "tip", "reduce")):
+            reply = f"Your highest spending category this month is **'{top_cat}'**. Reducing non-essential weekend expenses by 10-15% could easily save you ₹1,000 to ₹1,500 every month."
         else:
-            reply = f"या महिन्यात तुमचा आतापर्यंतचा एकूण खर्च **₹{monthly_total:,.2f}** आहे, ज्यामध्ये सर्वाधिक खर्च **'{top_cat}'** वर झाला आहे. तुम्हाला कोणत्याही विशिष्ट कॅटेगरीचे विश्लेषण हवे असल्यास सांगा!"
+            reply = f"Your total spending so far this month is **₹{monthly_total:,.2f}**, with the highest amount spent on **'{top_cat}'**. Let me know if you would like an in-depth breakdown of any specific category!"
 
         return AIChatResponse(
             reply=reply,
             suggested_actions=[
-                SuggestedAction(label="सर्व खर्च पहा", href="/expenses"),
-                SuggestedAction(label="बजेट तपासा", href="/budgets"),
+                SuggestedAction(label="View All Expenses", href="/expenses"),
+                SuggestedAction(label="Check Budgets", href="/budgets"),
             ],
         )
 
@@ -180,15 +180,15 @@ class MockAIProvider(BaseAIProvider):
                 has_warning = True
                 days_left = max(1, int((monthly_budget - monthly_total) / daily_velocity)) if daily_velocity > 0 else 10
                 predicted_day = min(days_in_month, day_of_month + days_left)
-                exhaustion_date = f"या महिन्याच्या {predicted_day} तारखेला"
-                warning_msg = f"तुमच्या सध्याच्या दैनंदिन खर्चाच्या गतीने (Velocity: ₹{daily_velocity:,.0f}/दिवस) तुमचे मासिक बजेट {exhaustion_date} संपण्याची शक्यता आहे."
+                exhaustion_date = f"the {predicted_day}th of this month"
+                warning_msg = f"At your current daily spending rate of ₹{daily_velocity:,.0f}/day, your monthly budget is projected to run out by {exhaustion_date}."
 
         if not has_warning:
-            warning_msg = "तुमचा चालू महिन्याचा खर्च नियंत्रित असून बजेटच्या मर्यादेत आहे. अशीच शिस्त कायम ठेवा!"
+            warning_msg = "Your current month's spending is well under control and within budget limits. Keep up the great financial discipline!"
 
         tips = [
-            "वीकेंडला हॉटेलिंग किंवा ऑनलाइन फूड डिलिव्हरीवर होणारा खर्च १५% कमी केल्यास महिन्याला ₹१,२०० पर्यंत बचत होईल.",
-            "दररोज UPI द्वारे होणारे ₹२०-₹५० चे लहान खर्च महिन्याअखेर मोठा आकडा बनतात, यावर लक्ष ठेवा.",
+            "Cutting down on weekend dining out or online food delivery by 15% can save up to ₹1,200 each month.",
+            "Keep track of daily micro UPI payments (₹20–₹50), as they accumulate into a substantial amount by month-end.",
         ]
 
         return AIInsightsResponse(

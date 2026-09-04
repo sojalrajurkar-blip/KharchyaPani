@@ -220,20 +220,20 @@ class GeminiProvider(BaseAIProvider):
     ) -> AIChatResponse:
         try:
             system_instruction = (
-                "You are 'KharchaMitra' (खर्चामित्र), a warm, intelligent personal expense and budget advisor for KharchyaPani.\n"
-                "You speak naturally in Marathi, English, or Hindi depending on what the user speaks.\n"
+                "You are 'Kharcha AI' (Copilot), a warm, intelligent personal expense and budget advisor for KharchyaPani.\n"
+                "You communicate clearly, concisely, and encouragingly in English.\n"
                 f"Here is the user's private financial summary for this month:\n"
                 f"- Total spent this month: ₹{context.get('monthly_total', 0):,.2f}\n"
                 f"- Monthly budget limit: ₹{context.get('monthly_budget', 0):,.2f}\n"
                 f"- Top spending category: {context.get('top_category', 'None')}\n"
                 f"- Category breakdown: {json.dumps(context.get('category_totals', {}))}\n"
                 "RULES:\n"
-                "1. Give concise, encouraging, practical financial advice.\n"
+                "1. Give concise, encouraging, practical financial advice in English.\n"
                 "2. Always return a valid JSON object with 'reply' (string) and 'suggested_actions' (list of objects with 'label' and 'href').\n"
                 "Example JSON:\n"
                 "{\n"
-                '  "reply": "तुमचा या महिन्याचा खर्च नियंत्रित आहे...",\n'
-                '  "suggested_actions": [{"label": "खर्च तपासा", "href": "/expenses"}]\n'
+                '  "reply": "Your monthly expenses are well within your budget limit...",\n'
+                '  "suggested_actions": [{"label": "View Expenses", "href": "/expenses"}]\n'
                 "}"
             )
 
@@ -252,17 +252,17 @@ class GeminiProvider(BaseAIProvider):
                 parsed = json.loads(cleaned)
 
             actions = [
-                SuggestedAction(label=a.get("label", "पहा"), href=a.get("href", "/"))
+                SuggestedAction(label=a.get("label", "View"), href=a.get("href", "/"))
                 for a in parsed.get("suggested_actions", [])
             ]
             if not actions:
                 actions = [
-                    SuggestedAction(label="सर्व खर्च पहा", href="/expenses"),
-                    SuggestedAction(label="बजेट तपासा", href="/budgets"),
+                    SuggestedAction(label="View All Expenses", href="/expenses"),
+                    SuggestedAction(label="Check Budgets", href="/budgets"),
                 ]
 
             return AIChatResponse(
-                reply=parsed.get("reply", "नमस्कार! मी तुमचा खर्चामित्र. मी तुम्हाला मदत कशी करू?"),
+                reply=parsed.get("reply", "Hello! I am your Kharcha AI Copilot. How can I assist you with your finances today?"),
                 suggested_actions=actions,
             )
         except Exception as e:
@@ -292,8 +292,8 @@ class GeminiProvider(BaseAIProvider):
             f"- Top categories: {json.dumps(context.get('category_totals', {}))}\n"
             "Return ONLY JSON:\n"
             "{\n"
-            '  "warning_message": "<User-friendly warning or encouragement in Marathi>",\n'
-            '  "savings_tips": ["<Tip 1 in Marathi>", "<Tip 2 in Marathi>"]\n'
+            '  "warning_message": "<User-friendly warning or encouragement in English>",\n'
+            '  "savings_tips": ["<Actionable tip 1 in English>", "<Actionable tip 2 in English>"]\n'
             "}"
         )
 
@@ -301,20 +301,20 @@ class GeminiProvider(BaseAIProvider):
         try:
             raw_json = await self._call_gemini(contents)
             parsed = json.loads(raw_json.strip().lstrip("```json").rstrip("```").strip())
-            warning_msg = parsed.get("warning_message", "खर्च नियंत्रणात ठेवा.")
-            tips = parsed.get("savings_tips", ["अनावश्यक खर्च टाळा."])
+            warning_msg = parsed.get("warning_message", "Your current spending is well-balanced.")
+            tips = parsed.get("savings_tips", ["Keep tracking daily expenses to maximize your savings."])
         except Exception as e:
             logger.warning(f"Failed to generate Gemini insights, using math fallback: {e}")
-            warning_msg = "तुमचा चालू महिन्याचा खर्च नियंत्रित आहे." if not has_warning else f"तुमचे मासिक बजेट लवकर संपू शकते (Velocity: ₹{daily_velocity:,.0f}/दिवस)."
+            warning_msg = "Your current spending is well under control and within budget limits." if not has_warning else f"Your monthly budget is running out fast (Daily Velocity: ₹{daily_velocity:,.0f}/day)."
             tips = [
-                "वीकेंडच्या खर्चावर लक्ष ठेवा.",
-                "लहान UPI व्यवहारांची नोंद ठेवा.",
+                "Keep an eye on weekend discretionary spending and dining out.",
+                "Track daily micro UPI transactions to prevent small leaks in your budget.",
             ]
 
         exhaustion_date = None
         if has_warning and daily_velocity > 0:
             days_left = max(1, int((monthly_budget - monthly_total) / daily_velocity))
-            exhaustion_date = f"या महिन्याच्या {min(days_in_month, day_of_month + days_left)} तारखेला"
+            exhaustion_date = f"the {min(days_in_month, day_of_month + days_left)}th of this month"
 
         return AIInsightsResponse(
             velocity_warning=VelocityWarning(
