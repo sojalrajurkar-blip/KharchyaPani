@@ -52,10 +52,14 @@ export interface AIInsightsResponse {
 export const aiApi = {
   scanReceipt: async (file: File): Promise<ReceiptScanResponse> => {
     const formData = new FormData();
-    formData.append('file', file);
-    return apiClient<ReceiptScanResponse>('/api/ai/scan-receipt', {
+    formData.append('file', file, file.name);
+    return apiClient<ReceiptScanResponse>(`/api/ai/scan-receipt?_t=${Date.now()}`, {
       method: 'POST',
       body: formData,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      },
     });
   },
 

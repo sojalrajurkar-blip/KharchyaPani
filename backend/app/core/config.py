@@ -4,7 +4,7 @@ from pydantic import field_validator
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "backend/.env", "../backend/.env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )
@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # AI Provider Settings (Environment-Driven)
     AI_PROVIDER: str = "auto"  # "auto", "gemini", "openai", or "mock"
-    AI_MODEL: str = "gemini-1.5-flash"
+    AI_MODEL: str = "gemini-3.5-flash"
     GEMINI_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
     AI_TEMPERATURE: float = 0.2

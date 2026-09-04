@@ -1,4 +1,5 @@
 import json
+import re
 import base64
 import logging
 from typing import List, Dict, Any, Optional
@@ -21,19 +22,64 @@ from app.schemas.ai import (
 logger = logging.getLogger(__name__)
 
 class GeminiProvider(BaseAIProvider):
-    """Production Google Gemini 1.5/2.0 Flash AI Provider with resilient Mock fallback."""
+    """Production Google Gemini Flash AI Provider with multimodal OCR support."""
 
     def __init__(self):
         self.api_key = settings.GEMINI_API_KEY.strip() if settings.GEMINI_API_KEY else ""
-        self.model = settings.AI_MODEL.strip() if settings.AI_MODEL else "gemini-flash-latest"
+        raw_model = settings.AI_MODEL.strip() if settings.AI_MODEL else "gemini-3.5-flash"
+        if raw_model in ("gemini-flash-latest", "gemini-flash", "gemini-1.5-flash"):
+            self.model = "gemini-3.5-flash"
+        else:
+            self.model = raw_model
         self.temperature = settings.AI_TEMPERATURE
         self.max_tokens = settings.AI_MAX_OUTPUT_TOKENS
-        self.base_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
         self.fallback_provider = MockAIProvider()
 
-    def _get_api_url(self) -> str:
-        return f"{self.base_url}?key={self.api_key}"
+    def _get_candidate_models(self) -> List[str]:
+        """Ordered list of candidate Gemini models to ensure maximum availability."""
+        candidates = [
+            self.model,
+            "gemini-3.5-flash",
+            "gemini-3.6-flash",
+            "gemini-2.5-flash",
+            "gemini-1.5-flash",
+            "gemini-2.0-flash",
+        ]
+        # Preserve order while deduplicating
+        seen = set()
+        deduped = []
+        for c in candidates:
+            if c and c not in seen:
+                seen.add(c)
+                deduped.append(c)
+        return deduped
 
+    def _parse_json_response(self, text: str) -> Dict[str, Any]:
+        """Extract and parse JSON safely from raw Gemini text responses."""
+        cleaned = text.strip()
+        # 1. Try direct JSON parse
+        try:
+            return json.loads(cleaned)
+        except Exception:
+            pass
+
+        # 2. Try markdown fenced block ```json ... ``` or ``` ... ```
+        fence_match = re.search(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", cleaned, re.IGNORECASE)
+        if fence_match:
+            try:
+                return json.loads(fence_match.group(1))
+            except Exception:
+                pass
+
+        # 3. Find outer braces {...}
+        brace_match = re.search(r"(\{[\s\S]*\})", cleaned)
+        if brace_match:
+            try:
+                return json.loads(brace_match.group(1))
+            except Exception:
+                pass
+
+        raise ValueError(f"Could not parse valid JSON from response: {text[:200]}")
 
     async def _call_gemini(self, contents: List[Dict[str, Any]], system_instruction: Optional[str] = None) -> str:
         if not self.api_key:
@@ -52,26 +98,49 @@ class GeminiProvider(BaseAIProvider):
                 "parts": [{"text": system_instruction}]
             }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(
-                self._get_api_url(),
-                json=payload,
-                headers={"Content-Type": "application/json"},
-            )
-            if resp.status_code != 200:
-                logger.error(f"Gemini API Error [{resp.status_code}]: {resp.text}")
-                raise RuntimeError(f"Gemini API request failed with status {resp.status_code}: {resp.text}")
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key,
+        }
 
-            data = resp.json()
-            try:
-                candidates = data.get("candidates", [])
-                if not candidates:
-                    raise RuntimeError("No candidate response received from Gemini API.")
-                text = candidates[0]["content"]["parts"][0]["text"]
-                return text
-            except (KeyError, IndexError) as e:
-                logger.error(f"Failed to parse Gemini response: {data}")
-                raise RuntimeError(f"Malformed response structure from Gemini API: {str(e)}")
+        candidate_models = self._get_candidate_models()
+        last_error = None
+
+        async with httpx.AsyncClient(timeout=35.0) as client:
+            for model_name in candidate_models:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
+                try:
+                    resp = await client.post(
+                        url,
+                        json=payload,
+                        headers=headers,
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        candidates = data.get("candidates", [])
+                        if candidates and "content" in candidates[0]:
+                            parts = candidates[0]["content"].get("parts", [])
+                            if parts and "text" in parts[0]:
+                                return parts[0]["text"]
+                    elif resp.status_code == 400:
+                        err_text = resp.text
+                        logger.warning(f"Gemini API returned 400 bad request: {err_text}")
+                        if "image" in err_text.lower() or "invalid_argument" in err_text.lower():
+                            raise ValueError("Invalid or corrupted image format. Please ensure you upload a valid photo.")
+                        raise ValueError(f"Invalid request to Gemini API: {err_text[:150]}")
+                    elif resp.status_code == 404:
+                        logger.warning(f"Model endpoint {model_name} returned 404, trying next candidate...")
+                        last_error = f"Model {model_name} not found: {resp.text}"
+                        continue
+                    else:
+                        logger.error(f"Gemini API returned status {resp.status_code} for {model_name}: {resp.text}")
+                        last_error = f"Status {resp.status_code}: {resp.text}"
+                except Exception as ex:
+                    logger.error(f"Request error calling Gemini {model_name}: {ex}")
+                    last_error = str(ex)
+                    continue
+
+        raise RuntimeError(f"Gemini API request failed across all candidate endpoints: {last_error}")
 
     async def scan_receipt(
         self,
@@ -79,76 +148,114 @@ class GeminiProvider(BaseAIProvider):
         mime_type: str,
         user_categories: List[Dict[str, Any]],
     ) -> ReceiptScanResponse:
-        try:
-            b64_image = base64.b64encode(image_bytes).decode("utf-8")
-            categories_list = [c.get("name") for c in user_categories if c.get("name")]
-            categories_str = ", ".join(categories_list) if categories_list else "Food, Travel, Shopping, Bills, Health, Other"
+        """Process multimodal receipt OCR via Google Gemini API with dynamic extraction."""
+        if not image_bytes:
+            raise ValueError("Empty image file provided.")
 
-            prompt = (
-                "You are an expert financial receipt OCR parser. Analyze the provided receipt or invoice image.\n"
-                f"Available user categories: [{categories_str}].\n"
-                "Extract the following fields and return ONLY a valid JSON object:\n"
-                "{\n"
-                '  "amount": <number or null>,\n'
-                '  "expense_date": "<YYYY-MM-DD or null>",\n'
-                '  "merchant_name": "<Store/Vendor name or null>",\n'
-                '  "suggested_category_name": "<Best matching category from the list above or general term>",\n'
-                '  "payment_mode": "<Cash, UPI, Card, or Net Banking>",\n'
-                '  "note": "<Brief summary of main items purchased>",\n'
-                '  "confidence": <float between 0.0 and 1.0>\n'
-                "}"
-            )
+        b64_image = base64.b64encode(image_bytes).decode("utf-8")
+        categories_list = [c.get("name") for c in user_categories if c.get("name")]
+        categories_str = ", ".join(categories_list) if categories_list else "Food, Travel, Shopping, Bills, Health, Other"
 
-            contents = [
-                {
-                    "parts": [
-                        {"text": prompt},
-                        {
-                            "inline_data": {
-                                "mime_type": mime_type,
-                                "data": b64_image,
-                            }
+        prompt = (
+            "You are an expert OCR financial receipt parser. Analyze the attached receipt, bill, invoice, or payment screenshot carefully.\n"
+            f"Available user categories: [{categories_str}].\n"
+            "Extract transaction details accurately from the image.\n"
+            "If the image is NOT a receipt/invoice or contains no legible financial data, set amount to null, confidence to 0.0, and describe in note.\n\n"
+            "Return ONLY a JSON object with this exact structure:\n"
+            "{\n"
+            '  "amount": <positive number or null>,\n'
+            '  "expense_date": "<YYYY-MM-DD or null>",\n'
+            '  "merchant_name": "<Store / Merchant / Vendor / Provider name or null>",\n'
+            '  "suggested_category_name": "<Best matching category from the available list above or general classification>",\n'
+            '  "payment_mode": "<UPI, Cash, Card, Net Banking, or null>",\n'
+            '  "note": "<Brief concise summary of purchased items/services>",\n'
+            '  "confidence": <float between 0.0 and 1.0>\n'
+            "}"
+        )
+
+        contents = [
+            {
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "inline_data": {
+                            "mime_type": mime_type,
+                            "data": b64_image,
                         }
-                    ]
-                }
-            ]
+                    }
+                ]
+            }
+        ]
 
-            raw_json = await self._call_gemini(contents)
+        raw_json = await self._call_gemini(contents)
+        parsed = self._parse_json_response(raw_json)
+
+        # 1. Parse amount cleanly
+        amount_val: Optional[float] = None
+        raw_amount = parsed.get("amount")
+        if raw_amount is not None:
             try:
-                parsed = json.loads(raw_json)
-            except json.JSONDecodeError:
-                cleaned = raw_json.strip().lstrip("```json").rstrip("```").strip()
-                parsed = json.loads(cleaned)
+                if isinstance(raw_amount, (int, float)):
+                    amount_val = float(raw_amount)
+                elif isinstance(raw_amount, str):
+                    clean_str = re.sub(r"[^\d.]", "", raw_amount)
+                    if clean_str:
+                        amount_val = float(clean_str)
+            except (ValueError, TypeError):
+                amount_val = None
 
-            suggested_name = parsed.get("suggested_category_name")
-            cat_id = None
-            if suggested_name:
-                for c in user_categories:
-                    if c.get("name", "").lower() == suggested_name.lower():
-                        cat_id = c.get("id")
-                        break
+        # 2. Parse category
+        suggested_name = parsed.get("suggested_category_name")
+        cat_id: Optional[int] = None
+        if suggested_name:
+            for c in user_categories:
+                if c.get("name", "").strip().lower() == suggested_name.strip().lower():
+                    cat_id = c.get("id")
+                    suggested_name = c.get("name")
+                    break
+        if not cat_id and user_categories and suggested_name:
+            for c in user_categories:
+                if any(w in suggested_name.lower() for w in c.get("name", "").lower().split()):
+                    cat_id = c.get("id")
+                    suggested_name = c.get("name")
+                    break
 
-            expense_date_val = None
-            if parsed.get("expense_date"):
-                try:
-                    expense_date_val = date.fromisoformat(parsed["expense_date"])
-                except ValueError:
-                    expense_date_val = date.today()
+        # 3. Parse expense date
+        expense_date_val: Optional[date] = None
+        raw_date = parsed.get("expense_date")
+        if raw_date and isinstance(raw_date, str):
+            try:
+                expense_date_val = date.fromisoformat(raw_date.strip())
+            except ValueError:
+                expense_date_val = None
+        if not expense_date_val:
+            expense_date_val = date.today()
 
-            return ReceiptScanResponse(
-                amount=parsed.get("amount"),
-                expense_date=expense_date_val or date.today(),
-                merchant_name=parsed.get("merchant_name"),
-                suggested_category_name=suggested_name or "Shopping",
-                suggested_category_id=cat_id,
-                payment_mode=parsed.get("payment_mode") or "UPI",
-                note=parsed.get("note"),
-                confidence=float(parsed.get("confidence", 0.9)),
-                raw_text=raw_json[:200],
-            )
-        except Exception as e:
-            logger.warning(f"Gemini scan_receipt failed ({e}), falling back to MockAIProvider.")
-            return await self.fallback_provider.scan_receipt(image_bytes, mime_type, user_categories)
+        # 4. Confidence & Merchant
+        confidence_val = float(parsed.get("confidence", 0.9)) if parsed.get("confidence") is not None else 0.85
+        merchant_name_val = parsed.get("merchant_name")
+        if isinstance(merchant_name_val, str) and merchant_name_val.strip().lower() in ("null", "none", "n/a", "unknown"):
+            merchant_name_val = None
+
+        payment_mode_val = parsed.get("payment_mode") or "UPI"
+        if isinstance(payment_mode_val, str) and payment_mode_val.strip().lower() in ("null", "none"):
+            payment_mode_val = "UPI"
+
+        note_val = parsed.get("note")
+        if isinstance(note_val, str) and note_val.strip().lower() in ("null", "none"):
+            note_val = None
+
+        return ReceiptScanResponse(
+            amount=amount_val,
+            expense_date=expense_date_val,
+            merchant_name=merchant_name_val,
+            suggested_category_name=suggested_name or "Shopping",
+            suggested_category_id=cat_id,
+            payment_mode=payment_mode_val,
+            note=note_val,
+            confidence=confidence_val,
+            raw_text=raw_json[:300],
+        )
 
     async def parse_expense_text(
         self,
@@ -178,11 +285,7 @@ class GeminiProvider(BaseAIProvider):
 
             contents = [{"parts": [{"text": prompt}]}]
             raw_json = await self._call_gemini(contents)
-            try:
-                parsed = json.loads(raw_json)
-            except json.JSONDecodeError:
-                cleaned = raw_json.strip().lstrip("```json").rstrip("```").strip()
-                parsed = json.loads(cleaned)
+            parsed = self._parse_json_response(raw_json)
 
             suggested_name = parsed.get("suggested_category_name")
             cat_id = None
@@ -245,11 +348,7 @@ class GeminiProvider(BaseAIProvider):
             formatted_contents.append({"role": "user", "parts": [{"text": message}]})
 
             raw_json = await self._call_gemini(formatted_contents, system_instruction=system_instruction)
-            try:
-                parsed = json.loads(raw_json)
-            except json.JSONDecodeError:
-                cleaned = raw_json.strip().lstrip("```json").rstrip("```").strip()
-                parsed = json.loads(cleaned)
+            parsed = self._parse_json_response(raw_json)
 
             actions = [
                 SuggestedAction(label=a.get("label", "View"), href=a.get("href", "/"))
@@ -300,7 +399,7 @@ class GeminiProvider(BaseAIProvider):
         contents = [{"parts": [{"text": prompt}]}]
         try:
             raw_json = await self._call_gemini(contents)
-            parsed = json.loads(raw_json.strip().lstrip("```json").rstrip("```").strip())
+            parsed = self._parse_json_response(raw_json)
             warning_msg = parsed.get("warning_message", "Your current spending is well-balanced.")
             tips = parsed.get("savings_tips", ["Keep tracking daily expenses to maximize your savings."])
         except Exception as e:

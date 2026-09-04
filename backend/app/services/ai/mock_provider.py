@@ -21,29 +21,30 @@ class MockAIProvider(BaseAIProvider):
         mime_type: str,
         user_categories: List[Dict[str, Any]],
     ) -> ReceiptScanResponse:
-        # Pick category matching groceries or shopping if available, else first
+        import hashlib
+        img_hash = int(hashlib.md5(image_bytes).hexdigest()[:6], 16)
+        calc_amount = round(50.0 + (img_hash % 2000) * 0.5, 2)
+        merchants = ["Cafe Coffee Day", "Metro Fuel Station", "City Mart", "Apollo Medical", "Spice Garden Restaurant"]
+        merchant = merchants[img_hash % len(merchants)]
+
+        # Pick category matching user categories or based on hash
         cat_id: Optional[int] = None
         cat_name = "Shopping"
-        for c in user_categories:
-            name_lower = c.get("name", "").lower()
-            if any(k in name_lower for k in ("groc", "shop", "food", "किराणा", "खरेदी")):
-                cat_id = c.get("id")
-                cat_name = c.get("name")
-                break
-        if cat_id is None and user_categories:
-            cat_id = user_categories[0].get("id")
-            cat_name = user_categories[0].get("name", "Other")
+        if user_categories:
+            selected_cat = user_categories[img_hash % len(user_categories)]
+            cat_id = selected_cat.get("id")
+            cat_name = selected_cat.get("name", "Shopping")
 
         return ReceiptScanResponse(
-            amount=485.50,
+            amount=calc_amount,
             expense_date=date.today(),
-            merchant_name="Supermarket & General Store",
+            merchant_name=merchant,
             suggested_category_name=cat_name,
             suggested_category_id=cat_id,
-            payment_mode="UPI",
-            note="Receipt scan: Groceries and daily essentials (Sample Mock Scan)",
-            confidence=0.96,
-            raw_text="DMart Supermarket\nDate: Today\nItem 1: 150.00\nItem 2: 335.50\nTotal: 485.50\nPaid via UPI",
+            payment_mode="UPI" if img_hash % 2 == 0 else "Card",
+            note=f"Receipt scan from {merchant} (Total: ₹{calc_amount})",
+            confidence=0.92,
+            raw_text=f"{merchant}\nDate: {date.today()}\nTotal: {calc_amount}",
         )
 
     async def parse_expense_text(

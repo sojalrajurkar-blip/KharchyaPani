@@ -1,7 +1,7 @@
 import calendar
 from datetime import date
 from typing import Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from decimal import Decimal
@@ -80,19 +80,42 @@ def _build_user_ai_context(db: Session, user_id: int) -> Dict[str, Any]:
 
 @router.post("/scan-receipt", response_model=ReceiptScanResponse, status_code=status.HTTP_200_OK)
 async def scan_receipt(
+    response: Response,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
     """Scan and extract structured transaction details from receipt/invoice photo."""
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+
     content_type = file.content_type or "image/jpeg"
+    filename_lower = (file.filename or "").lower()
+
+    # Normalize mime type if generic or mismatched
+    if content_type == "application/octet-stream" or content_type not in ALLOWED_MIME_TYPES:
+        if filename_lower.endswith((".png",)):
+            content_type = "image/png"
+        elif filename_lower.endswith((".webp",)):
+            content_type = "image/webp"
+        elif filename_lower.endswith((".jpg", ".jpeg")):
+            content_type = "image/jpeg"
+        elif filename_lower.endswith((".heic",)):
+            content_type = "image/heic"
+
     if content_type not in ALLOWED_MIME_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Unsupported image format. Allowed formats: JPEG, PNG, WebP.",
+            detail="Unsupported image format. Allowed formats: JPEG, PNG, WebP, HEIC.",
         )
 
     image_bytes = await file.read()
+    if not image_bytes or len(image_bytes) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded receipt image file is empty.",
+        )
+
     if len(image_bytes) > MAX_RECEIPT_SIZE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -104,6 +127,11 @@ async def scan_receipt(
 
     try:
         return await provider.scan_receipt(image_bytes, content_type, categories)
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve),
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

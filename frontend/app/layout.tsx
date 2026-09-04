@@ -14,6 +14,9 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'KharchyaPani',
   },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
   icons: {
     icon: '/icons/icon-192.png',
     apple: '/icons/icon-192.png',

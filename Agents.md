@@ -92,7 +92,7 @@
 
 44. Before making significant changes, check the current Git working tree and understand existing changes. Do not use destructive Git commands to clean the repository.
 
-45. Do not commit, push, force-push, rewrite Git history, or push directly to `main` unless explicitly requested. Never force-push without explicit approval.
+45. Do not commit, push, force-push, rewrite Git history, or push directly to `main` unless explicitly requested. Never force-push without explicit approval. NEVER commit or push `PROGRESS.md` (or `docs/progress.md`) to Git; all progress tracking files must remain strictly local to the workspace and never pushed to remote repositories.
 
 46. After making changes, run the relevant tests, build, lint, type checks, migration checks, or validation checks required for the affected area.
 

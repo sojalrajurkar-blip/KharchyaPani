@@ -31,18 +31,30 @@ export function ReceiptScannerModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Immediately clear previous scan result and errors to prevent showing stale state
     setError(null);
     setScanResult(null);
+
     const file = e.target.files?.[0];
+    // Reset file input value so selecting the same or new file will always fire onChange
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file (JPEG, PNG, WebP).');
+      setError('Please select a valid image file (JPEG, PNG, WebP, HEIC).');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
       setError('Image file size must be less than 5MB.');
       return;
+    }
+
+    // Clean up previous preview URL to prevent memory leaks
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
     }
 
     setImageFile(file);
@@ -55,10 +67,14 @@ export function ReceiptScannerModal({
     try {
       setIsScanning(true);
       setError(null);
+      setScanResult(null);
       const res = await aiApi.scanReceipt(file);
       setScanResult(res);
+      if (res.confidence < 0.2 && !res.amount && !res.merchant_name) {
+        setError('No legible transaction or receipt detected in this image. Please upload a clear photo of a bill or invoice.');
+      }
     } catch (err: any) {
-      setError(err?.message || 'Failed to scan receipt. Please ensure the image is clear.');
+      setError(err?.message || 'Failed to scan receipt. Please ensure the image is clear and try again.');
     } finally {
       setIsScanning(false);
     }
@@ -84,6 +100,12 @@ export function ReceiptScannerModal({
   };
 
   const handleClose = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
     setImageFile(null);
     setPreviewUrl(null);
     setScanResult(null);
@@ -258,8 +280,8 @@ export function ReceiptScannerModal({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-5 py-3 border-t border-slate-800 bg-slate-950/60">
+        {/* Sticky Footer */}
+        <div className="flex-shrink-0 flex items-center justify-between gap-3 px-5 py-3.5 border-t border-slate-800 bg-slate-950 sticky bottom-0 z-20">
           <button
             type="button"
             onClick={handleClose}
@@ -271,26 +293,38 @@ export function ReceiptScannerModal({
             type="button"
             disabled={!scanResult || isScanning || isSaving}
             onClick={handleApply}
-            className={`px-5 py-2 text-xs font-bold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-lg ${
-              autoSaveEnabled && onAutoSave
-                ? 'bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 hover:from-amber-400 hover:to-amber-300 shadow-amber-500/20'
-                : 'bg-gradient-to-r from-sky-500 to-cyan-500 text-slate-950 hover:from-sky-400 hover:to-cyan-400 shadow-sky-500/20'
+            className={`px-6 py-2.5 text-xs font-bold rounded-xl transition flex items-center gap-2 shadow-xl ${
+              !scanResult || isScanning || isSaving
+                ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                : autoSaveEnabled && onAutoSave
+                ? 'bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 hover:from-amber-400 hover:to-amber-300 shadow-amber-500/30 ring-2 ring-amber-400/50 cursor-pointer'
+                : 'bg-gradient-to-r from-sky-500 to-cyan-500 text-slate-950 hover:from-sky-400 hover:to-cyan-400 shadow-sky-500/30 ring-2 ring-sky-400/50 cursor-pointer'
             }`}
           >
-            {isSaving ? (
+            {isScanning ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Auto-saving...</span>
+                <Loader2 className="w-4 h-4 animate-spin text-sky-400" />
+                <span>Scanning Receipt...</span>
+              </>
+            ) : isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Saving to Database...</span>
+              </>
+            ) : !scanResult ? (
+              <>
+                <Upload className="w-3.5 h-3.5" />
+                <span>Upload Receipt to Submit</span>
               </>
             ) : autoSaveEnabled && onAutoSave ? (
               <>
-                <Zap className="w-3.5 h-3.5 fill-slate-950" />
-                <span>Auto-Save Expense</span>
+                <Zap className="w-4 h-4 fill-slate-950" />
+                <span>Submit & Auto-Save (₹{scanResult.amount ? Number(scanResult.amount).toFixed(2) : '0'})</span>
               </>
             ) : (
               <>
-                <Check className="w-3.5 h-3.5" />
-                <span>Apply to Form</span>
+                <Check className="w-4 h-4 stroke-[3]" />
+                <span>Submit to Form (₹{scanResult.amount ? Number(scanResult.amount).toFixed(2) : '0'})</span>
               </>
             )}
           </button>
